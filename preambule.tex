@@ -1,0 +1,122 @@
+\usepackage{etex}
+
+\usepackage{amsmath,amsthm,mathrsfs,amssymb,amsfonts,dsfont,nicefrac,stmaryrd,yhmath}
+\usepackage{mathtools,cancel}
+\mathtoolsset{showonlyrefs=true}
+
+\usepackage{multicol}
+\usepackage{subfigure}
+
+\usepackage{bold-extra,moresize}
+
+\usepackage{layout}
+
+\usepackage{pgfplots}
+\pgfplotsset{compat=newest}
+%\usetikzlibrary{plotmarks}
+
+\usetikzlibrary{arrows,positioning,shapes} 
+\usetikzlibrary{datavisualization}
+\usetikzlibrary{arrows,positioning,shapes,trees,mindmap,shadows} 
+\usepackage{pgfpages}
+\usepackage{tikz-3dplot}
+
+%%%%%%%%%%%%%
+%
+% Defining commands
+%
+%%%%%%%%%%%%%
+
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\K}{\mathbb{K}}
+\newcommand{\Y}{\mathbb{Y}}
+
+\renewcommand{\H}{\mathbb{H}}
+\newcommand{\V}{\mathbb{V}}
+
+\newcommand{\dis}{\displaystyle}
+\newcommand{\abs}[1]{\left|#1\right|}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\norme}[1]{\left\|#1\right\|}
+\newcommand{\norm}[1]{\left\|#1\right\|}
+
+\renewcommand{\leq}{\leqslant}
+\renewcommand{\geq}{\geqslant}
+\renewcommand{\tilde}{\widetilde}
+\newcommand{\grad}{\nabla}
+\newcommand{\scalaire}[2]{\left<#1\,,#2\right>}
+
+
+%
+%
+%%%%%%%%%%%%
+%
+% Redefining style
+%
+%%%%%%%%%%%%%%
+\tikzposterlatexaffectionproofoff
+%\usetheme{Wave}
+
+\definecolor{myred}{rgb}{0.5,0,0.1}
+\definecolor{mygreen}{rgb}{0,0.5,0.1}
+\definecolor{mybrown}{rgb}{0.75,0.5,0}
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}
+ \definecolorstyle{myColorStyle}{%
+\colorlet{colorOne}{mygreen}
+ \colorlet{colorTwo}{mygray} 
+ \colorlet{colorThree}{mybrown}
+ %
+}{
+% Background Colors 
+\colorlet{backgroundcolor}{colorOne!50} 
+\colorlet{framecolor}{colorTwo!50}
+% Title Colors 
+\colorlet{titlefgcolor}{black} 
+\colorlet{titlebgcolor}{colorOne!60}
+% Block Colors 
+\colorlet{blocktitlebgcolor}{colorThree!60} 
+\colorlet{blocktitlefgcolor}{black} 
+\colorlet{blockbodybgcolor}{colorTwo!5} 
+\colorlet{blockbodyfgcolor}{black}
+% Innerblock Colors
+\colorlet{innerblocktitlebgcolor}{colorOne!60} 
+\colorlet{innerblocktitlefgcolor}{black} 
+\colorlet{innerblockbodybgcolor}{colorOne!20} 
+\colorlet{innerblockbodyfgcolor}{black}
+% Note colors 
+\colorlet{notefgcolor}{black} 
+\colorlet{notebgcolor}{yellow!50} 
+\colorlet{notefrcolor}{white}
+}
+
+\usecolorstyle{myColorStyle}
+%\usecolorstyle[colorPalette=GreenGrayViolet]{Russia}
+\usebackgroundstyle{BottomVerticalGradation}
+\usenotestyle{Corner}
+
+\usetitlestyle{Wave}
+\useblockstyle{Envelope}
+
+%\newlength{\logoheight}
+%\setlength{\logoheight=2cm}
+
+\newlength{\plotwidth}
+\newlength{\plotheight}
+
+
+\newcommand{\todoVD}[2][]%
+{\todo[color=green!25,#1]{\footnotesize{\bf Vincent:} #2}}
+
+\newcommand{\todoJA}[2][]%
+{\todo[color=cyan!25,#1]{\footnotesize{\bf Julen:} #2}}
+
+\newcommand{\todoDP}[2][]%
+{\todo[color=blue!25,#1]{\footnotesize{\bf David:} #2}}
+
+\newcommand{\todoFC}[2][]%
+{\todo[color=red!25,#1]{\footnotesize{\bf Felipe:} #2}}
