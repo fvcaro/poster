@@ -1,11 +1,12 @@
 \documentclass[a0paper,25pt,portrait,blockverticalspace=20mm, colspace=20mm]{tikzposter}
 
 \input{preambule.tex}
+
 \title{\parbox{\linewidth}{\centering A Painless Automatic $hp$-Adaptive Coarsening Strategy For Indefinite Problems: A Goal-Oriented Approach}}
-\titlegraphic{\includegraphics[height=4.5cm]{Figures/Logo_MathMode} \quad \includegraphics[height=4.5cm]{Figures/inria-logo}}
+%\titlegraphic{\includegraphics[height=4.5cm]{Figures/Logo_MathMode}} %\quad \includegraphics[height=4.5cm]{Figures/inria-logo}}
 
 \author{{\underline{Vincent Darrigrand}, Julen Alvarez-Aramberri, Felipe V. Caro, Elisabete Alberdi, David Pardo}}
-\institute{MathMode, INRIA}
+%\institute{MathMode}
   
 \settitle{ \centering \vbox{
      \centering
@@ -14,6 +15,7 @@
      {\LARGE \it \@author \par} \vspace*{1em}  \@titlegraphic \\[\TP@titlegraphictotitledistance]\vspace*{1em} {\Large \@institute}
 }}
 
+\input{plot_commands.tex}
  
 \begin{document} 
   
@@ -31,65 +33,370 @@
 %
 %\innerblock{Objectives}{sharper a posteriori estimates}
 %}%
-
-%%%%%%%%%%%
-\block{Introduction of the Method}{ %
-We consider the abstract variational formulation and its discrete version (Galerkin approximation):
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\block{A painless $hp$-adaptive strategy}{ %
+Let $\calF = \{ \phi_{i} \}_{i=1}^{n_{\calF}}$ be a set of basis functions $\phi_i$, $\H_{\calF} \coloneqq \textrm{span}\{\phi_{1}, \dots, \phi_{n_{\calF}}\}$, and $n_{\calF} = \textrm{dim}(\H_{\calF})$. For a given bilinear continuous form $b$, we consider the abstract variational formulation and its discrete version:
+\innerblock{}{
 \begin{quote}
-Find $u^*\in \H$ and $u_h^*\in\H_h$ such that
+Find $u \in \H$ and $u_{\calF} \in \H_{\calF}$ such that
 %
 \begin{align}
 %\SwapAboveDisplaySkip
-b(u^*,v)=f(v),\quad \forall v\in \H&;&b(u^*_h,v)=f(v),\quad \forall v\in \H_h.%\label{direct}%\\
+b(u,\phi)=f(\phi), \quad \forall \phi\in \H&;&b(u_{\calF},\phi_{\calF}) = f(\phi_{\calF}), \quad \forall \phi_{\calF} \in \H_{\calF},%\label{direct}%\\
 %b(u,v^*)=\alert<1>{l(u)}&\quad \forall u\in \H, \label{adjoint}
 \end{align}
+where $\H$ is a Hilbert functional space and $\H_{\calF}$ is a finite element discretization $\calT$ of $\H$, such that $\H_{\calF} \subset \H$.
 \end{quote}
-\innerblock{}{The goal is to estimate
-\[l(u^*-u^*_h)=l(e_h)\]
-where $l\in\mathcal{L}{(\H)}$ is the Quantity of Interest (QoI).}
-The classical approach uses the dual problem and its discrete version:
-\begin{quote}
-Find $v^*\in \H$ and $v^*_h\in \H_h$ such that
+}
 %
-\begin{align}
-%\SwapAboveDisplaySkip
-b(u,v^*)=l(u),\quad \forall u\in \H &;& b(u,v^*_h)=l(u),\quad \forall u\in \H_h . 
-\end{align}
-\end{quote}
-Our method introduces an arbitrary bilinear form $\hat{b}$ to define an alternative dual problem:
-\begin{quote}
-Find $\hat{v}^*\in \H$ such that
+%Our \enquote{painless} approach operates always on a single mesh. To do so, it requires defining a projector that simulates the presence of a coarse mesh without the trouble of handling one.
+%\innerblock{}{For a given subset of basis functions $\calS\subset \calF$ that generates the space $\H_\calS \subset \H_\calF$, we define our \emph{projection operator} $\Pi_{\calF}^{\calS}$: $\H _{\calF} \longrightarrow \H_{\calS}$ as
+%\begin{equation}
+%  \Pi_{\calF}^{\calS} u_{\calF} \coloneqq \sum_{\phi_{i} \in \calS} u_{i} \phi_{i},
+%\end{equation}
+%that is, we extract the coefficients of $u_\calF$ corresponding to the basis functions in $\calS$, and we set the others to zero.}
 %
-\begin{align}
-%\SwapAboveDisplaySkip
-\hat{b}(u,\hat{v}^*)&=l(u),\quad \forall u\in \H. 
-\end{align}
-\end{quote}
+For any element $K$, we denote by $\calR_K$ the set of \emph{removable} basis functions associated to $K$, by $\abs{\calR_K}$ its cardinality, and by $\H_{\calR_K}$ its associated space.
+\innerblock{}{We express any $u_\calF \in \H_\calF$, as
 %
-\begin{center}
-\coloredbox[bgcolor=myred,linewidth=0pt,fgcolor=white]{\centering \textbf{Which method provides the best a~posteriori estimate?}}
-\end{center}
+\begin{equation}
+  u_{\calF} =  \Pi_{\calF}^{\calE_K} u_{\calF} + \Pi_{\calF}^{\calR_K} u_{\calF},
+\end{equation}
+where $\calE_K \coloneqq \calF \setminus \calR_K$ is the subset of \emph{essential} basis functions.
+}
+Since we consider a single mesh at a time, the solution $u_{\calE_K}$ in $\calE_K$ is never computed. Instead, we employ the projection of $u_\calF$ into $\calE_K$ to approximate it when necessary.
+%\begin{center}
+%\coloredbox[bgcolor=myred,linewidth=0pt,fgcolor=white]{\centering \textbf{Which method provides the best a~posteriori estimate?}}
+%\end{center}
 %
-}%
+}
 %%%%%%%%%%%%%%%%%%%%
-\block{Classical Estimate}{ %
-We have the following error representations:
-%\innerblock{Error representations}{
-\begin{quote}
-Find $e_h\in \H$, $\eps_h\in \H$  such that
-\begin{align}
-b({ e_h},v)&=f(v)-b(u_h,v), \quad \forall v \in \H,\\
-b(u,{\eps_h})&=l(u)-b(u,v_h), \quad \forall u \in \H.
-\end{align}
-\end{quote}
-%}
+\block{Data structures}{ %
+%To ensure continuity and avoid the so-called \emph{hanging nodes} by construction, we use the data structures proposed by Zander et al. (2015), which impose a massive number of Dirichlet nodes throughout the overlay mesh(es). 
+We illustrate a 1D multi-level $hp$-grid with hierarchical basis functions proposed by Zander and collaborators.
 
-\innerblock{A posteriori estimate}{%
-\begin{align}
-\abs{l(e_h)}\leq &\abs{\left({b_K(e_h,\eps_h)}\right)_K}_{1}. %\text{(Classical bounds)},\\
-\end{align}
-}%
+\innerblock{}{
+\begin{center}
+	\begin{tikzpicture}[scale=3,x=4cm,y=2cm,decoration={markings,% switch on markings mark=% actually add a mark
+     	mark=at position 0 with{\draw (0pt,-2pt) -- (0pt,2pt);},
+     	mark=at position 1 with{\draw (0pt,-2pt) -- (0pt,2pt);},
+	}
+	]
+	\node(origin1) at (0,1) {};
+	\node(origin2) at (1,1) {};
+	\node(origin3) at (2,1) {};
 
+	\node(father1) at (0,0) {};
+	\node(father2) at (0.25,0) {};
+	\node(father3) at (0.5,0) {};
+\node(father4) at (0.75,0) {};
+\node(father5) at (1,0) {};
+\node(father6) at (1.25,0) {};
+\node(father7) at (1.5,0) {};
+\node(father8) at (1.75,0) {};
+\node(father9) at (2,0) {};
+\node(father10) at (2.25,0) {};
+\node(father11) at (2.5,0) {};
+\node(father12) at (2.75,0) {};
+\node(father13) at (3,0) {};
+
+\node(son1) at (0,-1) {};
+\node(son1a) at (0.125,-1) {};
+\node(son1b) at (0.25,-1) {};
+\node(son1c) at (0.375,-1) {};
+\node(son2)  at (0.5,-1) {};
+\node(son3)  at (0.75,-1) {};
+\node(son4)  at (1,-1) {};
+\node(son10)  at (2,-1) {};
+\node(son11) at (2.25,-1) {};
+\node(son12) at (2.5,-1) {};
+\node(son13) at (2.75,-1) {};
+\node(son14) at (3,-1) {};
+
+\node(grandson1) at (0,-2) {};
+\node(grandson2)  at (0.25,-2) {};
+\node(grandson3)  at (0.5,-2) {};
+\node(grandson4)  at (0.625,-2) {};
+\node(grandson5)  at (0.75,-2) {};
+\node(grandson6)  at (0.875,-2) {};
+\node(grandson7)  at (1,-2) {};
+\node(grandson8)  at (1.25,-2) {};
+
+\node(ggson1) at (0,-3) {};
+\node(ggson2)  at (0.25,-3) {};
+\node(ggson3)  at (0.5,-3) {};
+\node(ggson4)  at (0.625,-3) {};
+\node(ggson5)  at (0.75,-3) {};
+\node(ggson6)  at (0.875,-3) {};
+\node(ggson7)  at (1,-3) {};
+\node(ggson8)  at (1.25,-3) {};
+
+
+\node(basis0_0) at ($(father1)+(0,0.5)$){};
+\node(basis0_1) at ($(father5)+(0,0.5)$){};
+\node(basis0_2) at ($(father9)+(0,0.5)$){};
+\node(basis0_3) at ($(father13)+(0,0.5)$){};
+\node(basis1_1) at ($(son2)+(0,0.5)$){};
+\node(basis1_2) at ($(son11)+(0,0.5)$){};
+\node(basis1_3) at ($(son12)+(0,0.5)$){};
+\node(basis1_4) at ($(son13)+(0,0.5)$){};
+\node(basis2_1) at ($(grandson5)+(0,0.5)$){};
+\node(basis2_2) at ($(grandson8)+(0,0.5)$){};
+\node(basis2_3) at ($(grandson4)+(0,0.25)$){};
+\node(basis2_4) at ($(grandson6)+(0,0.25)$){};
+\node(basis3_1) at ($(ggson5)+(0,0.5)$){};
+\node(basis3_2) at ($(ggson8)+(0,0.5)$){};
+\node(basis3_3) at ($(ggson4)+(0,0.5)$){};
+\node(basis3_4) at ($(ggson6)+(0,0.5)$){};
+
+
+%%%%%% HORIZONTAL LINES
+% level 1
+\draw [postaction={decorate}] (father1.center) -- (father5.center) node[pos=0.5](elemfather1){};
+\draw [postaction={decorate}] (father5.center) -- (father9.center) node[pos=0.5](elemfather2){};
+\draw [postaction={decorate}] (father9.center) -- (father13.center) node[pos=0.5](elemfather3){};
+
+% level 2
+
+\draw [postaction={decorate,red}] (son1.center) -- (son2.center) node[pos=0.5](elemson1){};
+\draw [postaction={decorate}] (son2.center) -- (son4.center) node[pos=0.5](elemson2){};
+
+\draw [postaction={decorate,red}] (son10.center) -- (son12.center) node[pos=0.5](elemson31){};
+\draw [postaction={decorate}] (son12.center) -- (son14.center) node[pos=0.5](elemson4){};
+
+% level 2
+\draw [postaction={decorate}] (grandson3.center) -- (grandson5.center) node[pos=0.5](elemgrandson1){};
+\draw [postaction={decorate}] (grandson5.center) -- (grandson7.center) node[pos=0.5](elemgrandson2){};
+
+% k3
+%\draw [postaction={decorate}] (ggson3.center) -- (ggson5.center) node[pos=0.5](elemggson1){};
+%\draw [postaction={decorate}] (ggson5.center) -- (ggson7.center) node[pos=0.5](elemggson2){};
+
+%%%%%%%%% BOTTOM LINE %%%%%%%%%
+
+\node(gggson1) at (0,-2.5) {};
+\node(gggson2)  at (0.125,-2.5) {};
+\node(gggson3)  at (0.25,-2.5) {};
+\node(gggson4)  at (0.375,-2.5) {};
+\node(gggson5)  at (0.5,-2.5) {};
+\node(gggson6)  at (0.625,-2.5) {};
+\node(gggson7)  at (0.75,-2.5) {};
+\node(gggson8a)  at (0.8125,-2.5) {};
+\node(gggson8)  at (0.875,-2.5) {};
+\node(gggson8b)  at (0.9325,-2.5) {};
+\node(gggson9)  at (1,-2.5) {};
+\node(gggson10)  at (1.125,-2.5) {};
+\node(gggson11)  at (1.25,-2.5) {};
+\node(gggson12)  at (1.375,-2.5) {};
+\node(gggson13)  at (1.5,-2.5) {};
+\node(gggson14)  at (1.625,-2.5) {};
+\node(gggson15)  at (1.75,-2.5) {};
+\node(gggson16)  at (1.875,-2.5) {};
+\node(gggson17)  at (2,-2.5) {};
+\node(gggson18)  at (2.125,-2.5) {};
+\node(gggson19)  at (2.25,-2.5) {};
+\node(gggson20)  at (2.375,-2.5) {};
+\node(gggson21)  at (2.5,-2.5) {};
+\node(gggson22)  at (2.625,-2.5) {};
+\node(gggson23)  at (2.75,-2.5) {};
+\node(gggson24)  at (2.875,-2.5) {};
+\node(gggson25)  at (3,-2.5) {};
+
+\draw [|-] (gggson1.center) -- (gggson5.center) node[pos=0.5](){};
+\draw [|-] (gggson5.center) -- (gggson7.center) node[pos=0.5](){};
+\draw [|-] (gggson7.center) -- (gggson9.center) node[pos=0.5](){};
+\draw [|-] (gggson9.center) -- (gggson17.center) node[pos=0.5](){};
+\draw [|-] (gggson17.center) -- (gggson21.center) node[pos=0.5](){};
+\draw [|-|] (gggson21.center) -- (gggson25.center) node[pos=0.5](){};
+
+
+%%%%%%%%% VERTICAL LINES %%%%%%%%%
+
+% From level 0
+\draw[dotted] (father1.center) -- (gggson1.center);
+\draw[dotted] (father5.center) -- (gggson9.center);
+\draw[dotted] (father9.center) -- (gggson17.center);
+\draw[dotted] (father13.center) -- (gggson25.center);
+
+%\draw[loosely dotted,very thin] (father6.center) -- (gggson11.center);
+%\draw[loosely dotted,very thin] (father7.center) -- (gggson13.center);
+%\draw[loosely dotted,very thin] (father8.center) -- (gggson15.center);
+%\draw[loosely dotted,very thin] (father11.center) -- (gggson21.center);
+
+% From level 1
+\draw[loosely dotted] (son2.center) -- (gggson5.center);
+%\draw[loosely dotted] (son4.center) -- (gggson9.center);
+
+%\draw[loosely dotted, very thin] (son1a.center) -- (gggson2.center);
+%\draw[loosely dotted, very thin] (son1b.center) -- (gggson3.center);
+%\draw[loosely dotted, very thin] (son1c.center) -- (gggson4.center);
+%\draw[loosely dotted, very thin] (son11.center) -- (gggson19.center);
+\draw[loosely dotted, very thin] (son12.center) -- (gggson21.center);
+%\draw[loosely dotted, very thin] (son13.center) -- (gggson23.center);
+
+
+% From level 2
+\draw[loosely dotted] (grandson5.center) -- (gggson7.center);
+
+%\draw[loosely dotted, very thin] (ggson4.center) -- (gggson6.center);
+%\draw[loosely dotted, very thin] (ggson6.center) -- (gggson6.center);
+%\draw[loosely dotted, very thin] (ggson6.center) -- (gggson8.center);
+
+%\node at (gggson1)  {\Cross};
+%\node at (gggson2)  {\Cross};
+%\node at (gggson3)  {\Cross};
+%\node at (gggson4)  {\Cross};
+%\node at (gggson5)  {\Cross};
+%\node at (gggson6)  {\Cross};
+%\node at (gggson7)  {\Cross};
+%\node at (gggson8a)  {\Cross};
+%\node at (gggson8)  {\Cross};
+%\node at (gggson8b)  {\Cross};
+%\node at (gggson9)  {\Cross};
+%\node at (gggson11)  {\Cross};
+%\node at (gggson13)  {\Cross};
+%\node at (gggson15)  {\Cross};
+%\node at (gggson17)  {\Cross};
+%%\node at (gggson19)  {\Cross};
+%\node at (gggson21)  {\Cross};
+%%\node at (gggson23)  {\Cross};
+%\node at (gggson25)  {\Cross};
+
+%%%%%%%%% BASIS FUNCTIONS %%%%%%%%%
+%%%%%% level 0
+
+% linear basis function
+
+\draw[color=black, thick] (basis0_0.center) -- (father5.center);
+\draw[color=black, thick] (father1.center) -- (basis0_1.center) -- (father9.center);
+\draw[color=black, thick] (father5.center) -- (basis0_2.center) -- (father13.center);
+\draw[color=black, thick] (basis0_3.center) -- (father9.center);
+
+% degree 2 basis function
+\draw[color=black, thick]    (father5.center) .. controls ($(elemfather2)+(-0.05,+0.15)$) and ($(elemfather2)+(0.05,0.15)$) ..  (father9.center) ;
+%\draw[color=black, thick]    (father9.center) .. controls ($(elemfather3)+(-0.05,+0.15)$) and ($(elemfather3)+(0.05,0.15)$) ..  (father13.center) ;
+
+% degree 3 basis function
+\draw[color=red, ultra thick]   (father5.center) .. controls ($(elemfather2)+(-0.01,-0.25)$) and ($(elemfather2)+(0.00,0.25)$) ..  (father9.center);
+
+%%%%% level 1
+% linear basis function
+\draw[color=black, thick] (son1.center) -- (basis1_1.center) -- (son4.center);
+\draw[color=red, ultra thick] (son10.center) -- (basis1_3.center) -- (son14.center);
+%\draw[color=red, thick] (son10.center) -- (basis1_2.center) -- (son12.center);
+%\draw[color=red, thick] (son12.center) -- (basis1_4.center) -- (son14.center);
+
+% degree 2 basis function
+\draw[color=black, thick]    (son1.center) .. controls ($(elemson1)+(-0.05,+0.15)$) and ($(elemson1)+(0.05,0.15)$) ..  (son2.center);
+
+% degree 3 basis function
+\draw[color=red, ultra thick]   (son1.center) .. controls ($(elemson1)+(-0.0,-0.25)$) and ($(elemson1)+(0.0,0.25)$) ..  (son2.center);
+
+
+%%%%% level 2
+
+% linear basis function
+\draw[color=black, thick] (grandson3.center) -- (basis2_1.center) -- (grandson7.center);
+%\draw[color=red, thick]    (grandson3.center) -- (basis2_3.center) -- (grandson5.center);
+%\draw[color=red, thick]    (grandson5.center) -- (basis2_4.center) -- (grandson7.center);
+
+% degree 2 basis function
+\draw[color=red, ultra thick]    (grandson3.center) .. controls ($(elemgrandson1)+(-0.05,+0.15)$) and ($(elemgrandson1)+(0.05,0.15)$) ..  (grandson5.center);
+\draw[color=black, thick]    (grandson5.center) .. controls ($(elemgrandson2)+(-0.05,+0.15)$) and ($(elemgrandson2)+(0.05,0.15)$) ..  (grandson7.center);
+
+% degree 3 basis function
+\draw[color=red, ultra thick]   (grandson5.center) .. controls ($(elemgrandson2)+(-0.0,-0.25)$) and ($(elemgrandson2)+(0.0,0.25)$) ..  (grandson7.center);
+
+
+%%%%% k3
+
+% linear basis function
+%\draw[color=red, thick]    (ggson3.center) -- (basis3_3.center) -- (ggson5.center);
+%\draw[color=red, thick]    (ggson5.center) -- (basis3_4.center) -- (ggson7.center);
+
+%%%%%%%%% CIRCLES %%%%%%%%%
+
+%%%%%% level 0
+
+\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(father1)+(0,0)$){};
+%\node[circle,draw, fill=white, inner sep=0pt,minimum size=5pt] at ($(father1a)+(0,0)$){};
+%\node[circle,draw, fill=white, inner sep=0pt,minimum size=5pt] at ($(father1b)+(0,0)$){};
+\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(father5)+(0,0)$){};
+%\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(father6)+(0,0)$){};
+%\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(father7)+(0,0)$){};
+%\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(father8)+(0,0)$){};
+\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(father9)+(0,0)$){};
+%\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(father11)+(0,0)$){};
+\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(father13)+(0,0)$){};
+
+%%%%%% level 1
+
+\node[circle,draw, fill=white, inner sep=0pt,minimum size=5pt] at ($(son1)+(0,0)$){};
+
+%\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(son1a)+(0,0)$){};
+%\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(son1b)+(0,0)$){};
+%\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(son1c)+(0,0)$){};
+\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(son2)+(0,0)$){};
+\node[circle,draw, fill=white, inner sep=0pt,minimum size=5pt] at ($(son4)+(0,0)$){};
+\node[circle,draw, fill=white, inner sep=0pt,minimum size=5pt] at ($(son10)+(0,0)$){};
+%\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(son11)+(0,0)$){};
+\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(son12)+(0,0)$){};
+%\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(son13)+(0,0)$){};
+\node[circle,draw, fill=white, inner sep=0pt,minimum size=5pt] at ($(son14)+(0,0)$){};
+
+%%%%%% level 2
+\node[circle,draw, fill=white, inner sep=0pt,minimum size=5pt] at ($(grandson3)+(0,0)$){};
+%\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(grandson4)+(0,0)$){};
+\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(grandson5)+(0,0)$){};
+%\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(grandson6)+(0,0)$){};
+\node[circle,draw, fill=white, inner sep=0pt,minimum size=5pt] at ($(grandson7)+(0,0)$){};
+
+%%%%%% level 2
+%\node[circle,draw, fill=white, inner sep=0pt,minimum size=5pt] at ($(ggson3)+(0,0)$){};
+%\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(ggson4)+(0,0)$){};
+%\node[circle,draw, fill=white, inner sep=0pt,minimum size=5pt] at ($(ggson5)+(0,0)$){};
+%\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(ggson6)+(0,0)$){};
+%\node[circle,draw, fill=white, inner sep=0pt,minimum size=5pt] at ($(ggson7)+(0,0)$){};
+
+%%%%%%%%%%% LEGEND
+
+%\draw[blue, very thick] at (origin) rectangle (3,2);
+%\node[rectangle,draw] at (origin1) {};
+
+\node[circle,draw, fill=white, inner sep=0pt,minimum size=5pt] at (origin1){};
+\node at ($(origin1) +(0.35,0.01)$)  {Dirichlet nodes};
+
+\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at (origin2){};
+\node at ($(origin2) +(0.3,0.01)$)  {Active nodes};
+
+\node[rectangle, inner sep=0pt, minimum height=3pt, minimum width=6pt, draw=red, fill=red] at (origin3)  {};
+%\node at (origin3)  {\Cross};
+\node at ($(origin3) +(0.4,0)$)  {Removable basis};
+
+%%%%%%%%%%%  TEXT
+
+%%%% left  %%%%
+
+%\node[anchor=west] at ($(father1)-(0.9,0)$) {level 0 (base)};
+%\node[anchor=west] at ($(son1)-(0.75,0)$) {level 1};
+%\node[anchor=west] at ($(grandson1)-(0.75,0)$) {level 2};
+%\node[anchor=west] at ($(ggson1)-(0.75,0)$) {level 3};
+%\node[anchor=west] at ($(gggson1)-(0.9,0)$) {Overlapped mesh};
+
+%%%% bottom  %%%%
+
+\node at ($(gggson3) +(0,-0.2)$)  {$p=3$};
+\node at ($(gggson6) +(0,-0.2)$)  {$p=2$};
+\node at ($(gggson8) +(0,-0.2)$)  {$p=3$};
+\node at ($(gggson13) +(0,-0.2)$)  {$p=3$};
+\node at ($(gggson19) +(0,-0.2)$)  {$p=1$};
+\node at ($(gggson23) +(0,-0.2)$)  {$p=1$};
+
+
+
+\end{tikzpicture}
+\end{center}
+}
 }%
 %%%%%%%%%%%%%%%
 %%
@@ -98,119 +405,91 @@ b(u,{\eps_h})&=l(u)-b(u,v_h), \quad \forall u \in \H.
  %%
  %%
 %%%%%%%%%%%%%%%
-\block{Alternative Estimate}{ %
-We use these alternative error representations:
-\begin{quote}%[Error representations]
-Find $e_h\in \H$, $\hat{\eps}_h\in \H$  such that
-\begin{align}
-b({ e_h},v)&=f(v)-b(u_h,v), \quad \forall v \in \H,\\
-\hat{b}(u,{ \hat{\eps}_h})&=l(u)-b(u,v_h), \quad \forall u \in \H.
-\end{align}
-\end{quote}
-
-\innerblock{A posteriori estimate}{%
-\begin{align}
-\abs{l(e_h)}\leq& \abs{\left({\hat{b}_K(e_h,{\hat{\eps}_{h}})}\right)_K}_{1}. %\text{(New bounds)}.
-\end{align}
-}%
-
-}%
-%%%%%%%%%%%%%%%%
-\block{Toy problem using Finite Elements Method}{%
-Find $u^*\in H^1(\Omega)$, $\Omega=(0,1)^d$, such that, for $k\in \R^+$, 
-
-\begin{equation}\label{helmholtz_direct}
-\begin{cases}
--\Delta u^*-({2\pi} k)^2u^*=g & \text{on } \Omega,\\
-u^*=0 & \text{on } {\Gamma_D},\\
-\partial_{\vec{n}} u^*=h & \text{on } {\Gamma_N}.
-\end{cases}
-\end{equation}
+\block{Extension to goal-oriented adaptivity}{%These quantities are often called quantities of interest (QoIs). To control the error in the QoI, Goal-oriented adaptivity (GOA) aims to approximate specific quantities of finite element solutions. 
+We introduce the following adjoint problem and its discrete counterpart as follows:
+\begin{quote}
+Find $v \in \H$ and $v_{\calF}\in \H_{\calF}$ such that
 %
 \begin{align}
+b(\phi,v)=l(\phi), \quad \forall \phi\in \H&;&b(\phi_{\calF},v_{\calF})=l(\phi_{\calF}), \quad \forall \phi_{\calF} \in \H_{\calF},
+\end{align}
+where $v_{\calF}$ stands for the Galerkin approximation of the solution $v$ to the adjoint problem associated with the space $\H_{\calF}$.
+\end{quote}
+\innerblock{}{
+\begin{quote}
+The objective is to control
+%
+\begin{align}
+\abs{l(u_\calF)-l(u_{\calE_K})}, \quad \forall K\in \calT,
+\end{align}
+where $l: \H \longrightarrow \R$ is a linear continuous form.
+\end{quote}
+}
+%
+}
+\block{Error indicators}{ %
+As a consequence of assuming that $\calE_K$ is (quasi) $b$-orthogonal to $\calR_K$ due to the (quasi)-orthogonality assumption of the basis functions, then
+\begin{equation}
+  \abs{l(u_\calF)-l(u_{\calE_K})} \simeq \abs{b(\Pi_{\calF}^{\calR_K} u_{\calF},\Pi_{\calF}^{\calR_K} v_{\calF})}
+  \leq  \abs{a(\Pi_{\calF}^{\calR_K} u_{\calF},\Pi_{\calF}^{\calR_K} v_{\calF})}.
+\end{equation}
+\innerblock{}{
+We define the element-wise indicators as
+\begin{equation}
+  \eta_K \coloneqq \abs{a(\Pi_{\calF}^{\calR_K} u_{\calF},\Pi_{\calF}^{\calR_K} v_{\calF})}, \quad \forall K\in \calT.
+\end{equation}
+}
+}%
+%%%%%%%%%%%%%%%%
+\block{Indefinite problem}{%
+Find $u$ such that, 
+		\begin{alignat*}{2}
+			- \nabla \cdot ( \sigma \nabla u) - k^{2}u &= \scalar{\mathds{1}_{(0,\frac{1}{4})^{d}}}{\cdot}_{L^{2}(\Omega)} \,\, && \text{ in } \Omega \subset \R^{d},\\
+			u&=0 \,\, && \text{ on } {\color{blue}{\Gamma_{D}}},\\
+			\grad u\cdot \vec{n} &= 0 \,\, && \text{ on } {\color{red}{\Gamma_{N}}}.
+		\end{alignat*}%
+\begin{align}
 \SwapAboveDisplaySkip
-	l(u)= \scalaire{\mathds{1}_{\color{green!50!black}{QoI}}}{u}_{L^2(\Omega)}&;&\hat{b}=\scalaire{\grad \cdot}{\grad \cdot}_{L^2(\Omega)}.
+	l(\cdot)=\scalar{\mathds{1}_{(\frac{3}{4},1)^{d}}}{\cdot}_{L^{2}(\Omega)};&&a(\cdot,\cdot) =& \, \sum_{K} \abs{\scalar{\grad \cdot}{\grad \cdot}_{L^{2}(K)}} + \abs{k^{2}} \abs{\scalar{\cdot}{\cdot}_{L^{2}(K)}}.
 \end{align}
 
 
-\begin{multicols}{3}
+\begin{multicols}{2}
 %\begin{subcolumns}
 %\subcolumn{0.333}
-\innerblock{1D}{
-$$g\equiv 1;\quad   h\equiv \frac{1}{2}.$$
-\vspace{1.5cm}
-	\begin{center}
-	\begin{tikzpicture}[x=0.2\colwidth]
-\draw (0,0) -- (1,0);
-\draw[color=green, line width=4pt,-] (2/5,0) to node[anchor=south, color=green!50!black] {QoI} (4/5,0);
-\node[color=red] at (0,0) {$\bullet$};
-\node[color=blue] at (1,0) {$\bullet$};
-\node[anchor=south,color=red] at (0,0) {$ \Gamma_D$};
-\node[anchor=south, color=blue] at (1,0) {$\Gamma_N$};
-\node[pin={[pin distance=1cm,pin edge={<-,solid,ultra thick}] 90:${\Omega}$}] at (0.3,0) {};
-%\node[anchor=north east] at (0,0) {$0$};
-%\node[anchor=north west] at (1,0) {$1$};
-
-\end{tikzpicture}
-\end{center}
-\vspace{2cm}
-}
-%\begin{figure}
-%\hspace{0.5cm}
-%\subcolumn{0.333}
 \innerblock{2D}{
-$$g\equiv 0;\quad   h\equiv (2\pi k)\cdot \vec{n}.$$
 \begin{center}
-%\hspace{0.5cm}
-\begin{tikzpicture}[scale=6.2]
+$$k = (8 \cdot 2 \pi, 2 \pi).$$
+\begin{tikzpicture}[scale=2.75,x=2.5cm,y=2.5cm]
+    	\node(n1) at (0,0){};
+    	\node(n2) at (1,0){};
+    	\node(n3) at (1,1){};
+    	\node(n4) at (0,1){};
 
-%\draw[step=0.2,gray] (0,0) grid (1,1);
-%\node[anchor=east] at (0,0.2) {\tiny $\left(0,\nicefrac{1}{5}\right)$};
-%\node[anchor=north] at (0.2,0) {\tiny $\left(\nicefrac{1}{5},0\right)$};
+    	\node(n5) at (0.25,0.25){};
+    	\node(n6) at (0.75,0.25){};
+    	\node(n7) at (0.75,0.75){};
+    	\node(n8) at (0.25,0.75){};
 
-%\draw[gray] (0,0.2)--(0.2,0);
-%\draw[gray] (0,0.4)--(0.4,0);
-%\draw[gray] (0,0.6)--(0.6,0);
-%\draw[gray] (0,0.8)--(0.8,0);
-%\draw[gray] (0,1)--(1,0);
-%\draw[gray] (0.2,1)--(1,0.2);
-%\draw[gray] (0.4,1)--(1,0.4); 
-%\draw[gray] (0.6,1)--(1,0.6);
-%\draw[gray] (0.8,1)--(1,0.8);
+    	\draw (n1) rectangle (n5) node[pos=0.5] {$f$};
+    	\draw (n7) rectangle (n3) node[pos=0.5] {$l$};
 
-%\node[anchor=north east] at (0,0) {\footnotesize  $(0,0)$};
-%\node[anchor=south west] at (1,1) {\footnotesize $(1,1)$};
+    	\draw[color=blue, thick] (n5) rectangle (n7);
 
+    	\draw[color=blue, thick] (n4.center) -- (n1.center) -- (n2.center) node[pos=0.5,pin={-90: $\Gamma_{D}$}]{};
+    	\draw[color=red, thick] (n4.center)--  (n3.center) -- node[pos=0.5,pin={0: $\Gamma_{N}$}]{} (n2.center);
 
-\draw[color=black] (0,0) rectangle (1,1);
-\node at (0.5,0.5) {$\Omega$};
+    	\node(omega) at (0.5,0.85){$\Omega$};
 
-\draw[color=blue,line width=2pt](1,0) -- (1,1);
-\draw[color=blue,line width=2pt](0,1) -- (1,1);
-
-
-\draw[color=red,line width=2pt](0,0) -- (1,0);
-\draw[color=red,line width=2pt](0,0) -- (0,1);
-
-\node[anchor=east, color=red] at (0,1/2) {$\Gamma_D$};
-\node[anchor=south, color=blue] at (1/2,1) {$\Gamma_N$};
-\draw[color=green!,line width=4pt] (1,0.9) -- (1,1);
-\node[anchor=west,color=green!50!black] at (1,0.95) {Q.o.I.};
-\end{tikzpicture}
-%}
+  	\end{tikzpicture}
 \end{center}
-%}
-
 }
 %\subcolumn{0.333}
 \innerblock{3D}{
-$$g\equiv 0 ;\quad   h\equiv (2\pi k)\cdot \vec{n}.$$
-%\caption{Uniform triangulation of the domain $\Omega$ with discretisation step at $0.2$}
-%\end{figure}
-
-
+$$k = (4 \cdot 2 \pi, 2 \pi).$$
+${\color{blue}{\Gamma_{D}}} =\text{ faces whose intersection is (0,0,0) }.$
+${\color{red}{\Gamma_{N}}}   =\text{ faces whose intersection is (1,1,1) }.$
 \begin{center}
-%\hspace{0.5cm}
 \tdplotsetmaincoords{60}{125}
 \begin{tikzpicture}%[x=0.3\colwidth]
 	[tdplot_main_coords,
@@ -222,7 +501,7 @@ $$g\equiv 0 ;\quad   h\equiv (2\pi k)\cdot \vec{n}.$$
 		%x=-2cm,
 		%y=2cm,
 		%z=2cm,
-		scale=3.4
+		scale=3.8
 		]
 	%draw a grid in the x-y plane
 %	\foreach \x in {-0.5,0,...,2.5}
@@ -246,7 +525,7 @@ $$g\equiv 0 ;\quad   h\equiv (2\pi k)\cdot \vec{n}.$$
 	%draw the back-left of the cube
 	\draw[cube,dashed,opacity=1] (0,0,0) -- (1,0,0) -- (1,0,1) -- (0,0,1) -- cycle;
 
-	\node[pin={[pin distance=1cm,pin edge={<-,red,ultra thick,dashed}] 70:$\color{red}{\Gamma_D}$}] at (0,0.5,0.8) {};
+	%\node[pin={[pin distance=1cm,pin edge={<-,red,ultra thick,dashed}] 70:$\color{red}{\Gamma_D}$}] at (0,0.5,0.8) {};
 	\node at (0.7,0.6,0.5){$\Omega$};
 	%draw the front-right of the cube
 	\draw[cube,fill=blue ,opacity=0.5] (1,0,0) -- (1,1,0) -- (1,1,1) -- (1,0,1) -- cycle;
@@ -258,16 +537,16 @@ $$g\equiv 0 ;\quad   h\equiv (2\pi k)\cdot \vec{n}.$$
 	\draw[cube,fill=blue,opacity=0.5] (0,0,1) -- (0,1,1) -- (1,1,1) -- (1,0,1) -- cycle;
 	\draw[cube] (0,0,1) -- (0,1,1) -- (1,1,1) -- (1,0,1) -- cycle;
 	
-	\node[pin={[pin distance=1cm,pin edge={<-,solid,blue,ultra thick}] 110:$\color{blue}{\Gamma_N}$}] at  (1/2,0.05,1) {};
+	%\node[pin={[pin distance=1cm,pin edge={<-,solid,blue,ultra thick}] 110:$\color{blue}{\Gamma_N}$}] at  (1/2,0.05,1) {};
 	
 	%draw the QoI
-	\draw[QoI] (0.9,0.9,1) -- (0.9,1,1) -- (1,1,1) -- (1,0.9,1) -- cycle;
+	%\draw[QoI] (0.9,0.9,1) -- (0.9,1,1) -- (1,1,1) -- (1,0.9,1) -- cycle;
 %	%draw the QoI
-	\draw[QoI] (1,0.9,0.9) -- (1,0.9,1) -- (1,1,1) -- (1,1,0.9) -- cycle;
+	%\draw[QoI] (1,0.9,0.9) -- (1,0.9,1) -- (1,1,1) -- (1,1,0.9) -- cycle;
 %	%draw the QoI
-	\draw[QoI] (0.9,1,0.9) -- (0.9,1,1) -- (1,1,1) -- (1,1,0.9) -- cycle;
+	%\draw[QoI] (0.9,1,0.9) -- (0.9,1,1) -- (1,1,1) -- (1,1,0.9) -- cycle;
 	
-	\node[pin={[pin distance=1.7cm,pin edge={<-,solid,green,ultra thick}] 0:$\color{green!50!black}{QoI}$}] at  (1,1,1) {};
+	%\node[pin={[pin distance=1.7cm,pin edge={<-,solid,green,ultra thick}] 0:$\color{green!50!black}{QoI}$}] at  (1,1,1) {};
 	
 	%\node[anchor=south, color=blue] at (0,1/2,1) {$\Gamma_N$};
 	%\node[anchor=south, color=red] at (1/2,0,1) {$\Gamma_D$};
@@ -280,249 +559,109 @@ $$g\equiv 0 ;\quad   h\equiv (2\pi k)\cdot \vec{n}.$$
 }
 %\end{subcolumns}
 \end{multicols}
-
-
-
-
 }%
-
-
-
 \end{columns}
 
-
-
 \begin{columns}
-%%%%%%%%%%%%
-%%
-  %%
+
  \column{0.3333} 
- %%
- %%
- %%%%%%%%%%%%
 
-% \block{1D numerical results}{%
+ \block{2D numerical results}{%
+
+\setlength{\plotheight}{15cm}
+\setlength{\plotwidth}{20cm}
+
+ \begin{tikzfigure}[Evolution of the error in the QoI.]
+
+\begin{tikzpicture}
+\begin{axis}[width=\plotwidth,height=\plotheight,
+		xlabel={Number of DoFs},
+		%x dir=reverse,
+		ylabel=Relative error in \% (log scale),
+		ymode=log,
+		xmode=log,
+		%yticklabel pos=right,
+		ylabel near ticks,
+		xlabel near ticks,
+		enlargelimits=true,
+		legend style={draw=black,fill=white,legend cell align=left, at={(0.5,1.01)}, anchor=south},
+		legend columns=-1
+		]
+     	\addplot+[ line width=1pt] table[x expr=\thisrow{nr_dof},y expr=\thisrow{Error}] {Figures/Helm2DGOA/hp/order_1/outputs.txt}node[pos=0.9, pin={[pin edge=solid]180:$hp$}]{};
+	
+	\addplot+[ line width=1pt] table[x expr=\thisrow{nr_dof},y expr=\thisrow{Error}] {Figures/Helm2DGOA/h/order_1/outputs.txt}node[pos=0.9, pin={[pin edge=solid]90:$h$ ($p=1$)}]{};
+	
+	\addplot+[ line width=1pt] table[x expr=\thisrow{nr_dof},y expr=\thisrow{Error}] {Figures/Helm2DGOA/h/order_2/outputs.txt}node[pos=0.9, pin={[pin edge=solid]-90:$h$ ($p=2$)}]{};
+
+\end{axis}
+\end{tikzpicture}
+%\end{center}
+%\caption{}
+\end{tikzfigure}
+}
+%
+\note[targetoffsetx=-3cm, targetoffsety=-2cm, angle=0, radius=0cm,width=7cm, rotate=10, connection, linewidth=.2cm,
+     roundedcorners=30, innersep=1cm]{\centering\vspace{1.5cm}\textbf{Published!}
+\scriptsize
+%Felipe V. Caro and Vincent Darrigrand and Julen Alvarez-Aramberri and Elisabete Alberdi and David Pardo.\\
+%A painless multi-level automatic goal-oriented $hp$-adaptive coarsening strategy for elliptic and non-elliptic problems.\\
+{\em Computer Methods in Applied Mechanics and Engineering}, 2022.
+ }
+%
+\column{0.3333} 
 % 
-%\newlength{\plotwidth}
-%\newlength{\plotheight}
+\block{3D numerical results}{%
 %
-%\setlength{\plotheight}{15cm}
-%    \setlength{\plotwidth}{20cm}
+\setlength{\plotheight}{15cm}
+\setlength{\plotwidth}{20cm}
+
+ \begin{tikzfigure}[Evolution of the error in the QoI.]
+
+\begin{tikzpicture}
+\begin{axis}[width=\plotwidth,height=\plotheight,
+		xlabel={Number of DoFs},
+		%x dir=reverse,
+		ylabel=Relative error in \% (log scale),
+		ymode=log,
+		xmode=log,
+		%yticklabel pos=right,
+		ylabel near ticks,
+		xlabel near ticks,
+		enlargelimits=true,
+		legend style={draw=black,fill=white,legend cell align=left, at={(0.5,1.01)}, anchor=south},
+		legend columns=-1
+		]
+%\legend{$\abs{l(e_h)}$,Classical bound,New bound}
+     	\addplot+[ line width=1pt] table[x expr=\thisrow{nr_dof},y expr=\thisrow{Error}] {Figures/Helm3DGOA/hp/order_1/outputs.txt}node[pos=0.9, pin={[pin edge=solid]180:$hp$}]{};
+
+\end{axis}
+\end{tikzpicture}
+%\end{center}
+%\caption{}
+\end{tikzfigure}
+}%
+
+\note[targetoffsetx=-3cm, targetoffsety=-2cm, angle=0, radius=0cm,width=7cm, rotate=10, connection, linewidth=.2cm,
+     roundedcorners=30, innersep=1cm]{\centering\vspace{1.5cm}\textbf{Published!}
+\scriptsize
+%Felipe V. Caro and Vincent Darrigrand and Julen Alvarez-Aramberri and Elisabete Alberdi and David Pardo.\\
+%A painless multi-level automatic goal-oriented $hp$-adaptive coarsening strategy for elliptic and non-elliptic problems.\\
+{\em Computer Methods in Applied Mechanics and Engineering}, 2022.
+ }
+ 
+ \column{0.25}
+ 
+ \block{Work in progress}{
+\begin{itemize}
+\item Multi-adaptive goal-oriented;
+\item Magnetotellurics;
+\item Controlled Source Electromagnetics;
+\end{itemize}
 %
-% \begin{tikzfigure}[Uniform {$p$-refinements} for $k\simeq 20$ wavelengths, $h(2k\pi)\gg 1$.]
-%%  \begin{center}
-%   % \ref{legend_precise}
-%   
-%    
-%   % \setlength{\plotheight}{5.9cm}
-%%\ref{legend_2D_bounds}\\
-%%\tikzstyle{every node}=[font=\footnotesize]
-%%   \vspace{-0.2cm}
-%%\hspace{-0.9cm}
-%\begin{tikzpicture}
-%\begin{axis}[width=\plotwidth,height=\plotheight,
-%%scale only axis,
-%%xmode=log,
-%%xmin=2.50345664582937,
-%%xmax=157.128720064702,
-%xtick={3,5,10,15},
-%xticklabels={3,{5},{10},{15}},
-%xminorticks=true,
-%ytick={10e{-3},10e{-1},10e{2},10e{4}},
-%yticklabels={$10^{-3}$,$10^{-1}$,$10^{2}$,$10^{4}$},
-%xlabel={D.o.f.s per wavelength},
-%ymode=log,
-%%ymin=0.000494125487062414,
-%%ymax=10000,%204.11905803267,
-%yminorticks=true,
-%ylabel={Relative error in \%},
-%%legend style={ draw=black,fill=white,legend cell align=left},
-%%legend to name=legend_precise
-%%legend pos= north east,
-%]
-%%\legend{$\abs{l(e_h)}$,Classical bound,New bound}
-%{\addplot [color=red,solid,line width=4pt]
-%  table[row sep=crcr]{
-%3.23976742401447	526.272764541084	\\
-%6.43044746281661	508.156101113134	\\
-%9.62112750161874	4.93030129193148	\\
-%12.8118075404209	0.0743677510892578	\\
-%16.002487579223	0.000742580239625024	\\
-%%19.1931676180251	5.09804147768799e-06	\\
-%}
-%node[pin={[pin edge={<-,solid,red,ultra thick}]-90:$\abs{l(e_h^*)}$}] at (4.23976742401447,526.272764541084) {};
-%%\addlegendentry{$\abs{l(e_h)}$}
-%}
-%{\addplot [color=black!50!green,dotted,mark=triangle,mark options={solid,,rotate=180},line width=4pt]
-%  table[row sep=crcr]{
-%  3.23976742401447	17545.310906375	\\
-%6.43044746281661	83790.7436006804	\\
-%9.62112750161874	10.6410983067026	\\
-%12.8118075404209	0.104026565549748	\\
-%16.002487579223	0.00104313592634005	\\
-%%19.1931676180251	7.07065405758037e-06	\\
-%}
-%node[pin={[pin edge={<-,solid,black!50!green,ultra thick}] 0:Classical estimate}] at (6.43044746281661,83790.7436006804) {};
-%}
-%{\addplot [color=blue,dashed,mark=+,line width=4pt,mark options={solid}]
-%  table[row sep=crcr]{
-%3.23976742401447	2021.58595776932	\\
-%6.43044746281661	511.005884240018	\\
-%9.62112750161874	6.68626165611229	\\
-%12.8118075404209	0.102706477792951	\\
-%16.002487579223	0.0010432712465022	\\
-%%19.1931676180251	7.07064812859771e-06	\\
-%}
-%node[pin={[pin edge={<-,solid,blue,ultra thick}] -90:New estimate}] at (9.62112750161874,6.68626165611229) {};
-%%\addlegendentry{New bounds}
-%}
-%
-%\end{axis}
-%\end{tikzpicture}
-%%\end{center}
-%%\caption{}
-%\end{tikzfigure}
-%}%
+}
 
 
-%\note[targetoffsetx=-3cm, targetoffsety=-2cm, angle=0, radius=0cm,width=7cm, rotate=10, connection, linewidth=.2cm,
-%     roundedcorners=30, innersep=1cm]{\centering\vspace{1.5cm}\textbf{Published!}
-%%\scriptsize
-%%V.~Darrigrand, D.~Pardo, and I.~Muga.\\
-%% Goal-oriented adaptivity using unconventional error representations for the 1d Helmholtz equation.\\
-%% {\em Computers \& Mathematics with Applications}, 2015.%
-% }
-%%%%%%%%%%%%%
-%%%
-%  %%
-% \column{0.3333} 
-% %%
-% %%
-% %%%%%%%%%%%%
-% 
-%\block{2D numerical results}{%
-%
-%
-% \begin{tikzfigure}[Uniform $p$-refinements, for $k=30$ wavelengths, $h(2k\pi)\gg 1$.]
-%%  \begin{center}
-%   % \ref{legend_precise}
-%   
-%    \setlength{\plotheight}{15cm}
-%    \setlength{\plotwidth}{20cm}
-%   % \setlength{\plotheight}{5.9cm}
-%%\ref{legend_2D_bounds}\\
-%%\tikzstyle{every node}=[font=\footnotesize]
-%%   \vspace{-0.2cm}
-%%\hspace{-0.9cm}
-%\begin{tikzpicture}
-%\begin{axis}[%
-%width=\plotwidth,height=\plotheight,
-%%xmode=log,
-%xmin=1.5,
-%xmax=9,
-%xlabel={D.o.f.s per wavelength},
-%xtick={2,3,4,6,8},
-%xticklabels={2,3,4,6,8},
-%ytick={10e{-3},10e{-1},10e{1},10e{3},10e{6}},
-%yticklabels={$10^{-3}$,$10^{-1}$,$10^{1}$,$10^{3}$,$10^{6}$},
-%%xticklabels={},
-%ymode=log,
-%ylabel={Relative error in \%},
-%%legend pos= outer north east,
-%%legend style={draw=black,fill=white,legend cell align=left},
-%]
-%\addplot [color=red,solid,line width=4pt,]
-%  table[x=DOF,y=LE]{bounds_2D.txt}
-%  node[pin={[pin edge={<-,solid,red,ultra thick}]-90:$\abs{l(e_h^*)}$}] at (2.3805928707368218,132.15818485126883) {};
-%%node[pin={[pin distance=1cm,pin edge={<-,solid,red,thick}] -90:$\abs{l(e_h)}$}] at (2.5927248644,145.5102634148) {};
-%%\addlegendentry{$l(e_h)$};
-%
-%\addplot [color=black!50!green,dotted,mark=triangle,mark options={solid,rotate=180},line width=2pt,]
-%  table[x=DOF,y=Classical]{bounds_2D.txt}
-%  node[pin={[pin edge={<-,solid,black!50!green,ultra thick}] 0:Classical estimate}] at (4.7376155150307051 ,  16098132.017135398) {};
-%%node[pin={[pin edge={<-,solid,black!50!green,thick}] 0:Classical bound}] at (4.9497474683,3478.7271859448) {};
-%%\addlegendentry{Classical bound};
-%
-%\addplot [color=blue,dashed,mark=+,mark options={solid},line width=4pt,]
-%  table[x=DOF,y=Alternative]{bounds_2D.txt}
-%  node[pin={[pin edge={<-,solid,blue,ultra thick}] -90:New estimate}] at (5.9161268371776465   ,  4.3979422214161294 ) {};
-%%node[pin={[pin distance=1cm,pin edge={<-,solid,blue,thick}] -90:$\tilde{b}=\scalaire{\grad \cdot}{\grad \cdot}_{L^2}$}] at (3.7712361663, 1191.3435988333) {};
-%%\addlegendentry{$\tilde{b}=\scalaire{\grad \cdot}{\grad \cdot}_{L^2}$};
-%\end{axis}
-%
-%\end{tikzpicture}
-%%\end{center}
-%%\caption{}
-%\end{tikzfigure}
-%}%
-%%%%%%%%%%%%%
-%%%
-%  %%
-% \column{0.3333} 
-% %%
-% %%
-% %%%%%%%%%%%%
-%
-%\block{3D numerical results}{%
-%
-% \begin{tikzfigure}[Uniform $p$-refinements, for $k=3$ wavelengths, $h(2k\pi)\gg 1$.]
-%%  \begin{center}
-%   % \ref{legend_precise}
-%   
-%    \setlength{\plotheight}{15cm}
-%    \setlength{\plotwidth}{20cm}
-%   % \setlength{\plotheight}{5.9cm}
-%%\ref{legend_2D_bounds}\\
-%%\tikzstyle{every node}=[font=\footnotesize]
-%%   \vspace{-0.2cm}
-%%\hspace{-0.9cm}
-%\begin{tikzpicture}
-%\begin{axis}[%
-%width=\plotwidth,height=\plotheight,
-%%xmode=log,
-%xmin=1.5,
-%xmax=9,
-%xlabel={D.o.f.s per wavelength},
-%xtick={2,3,4,6,8},
-%xticklabels={2,3,4,6,8},
-%ytick={10e{-3},10e{-1},10e{1},10e{3},10e{4}},
-%yticklabels={$10^{-3}$,$10^{-1}$,$10^{1}$,$10^{3}$,$10^{4}$},
-%%xticklabels={},
-%ymode=log,
-%ylabel={Relative error in \%},
-%%legend pos= outer north east,
-%%legend style={draw=black,fill=white,legend cell align=left},
-%]
-%\addplot [color=red,solid,line width=4pt,]
-%  table[x=DOF,y=LE]{bounds_3D.txt}
-%  node[pin={[pin edge={<-,solid,red,ultra thick}]-90:$\abs{l(e_h^*)}$}] at (2.6261511956655523 ,100.71786639514887) {};
-%%node[pin={[pin distance=1cm,pin edge={<-,solid,red,thick}] -90:$\abs{l(e_h)}$}] at (2.5927248644,145.5102634148) {};
-%%\addlegendentry{$l(e_h)$};
-%
-%\addplot [color=black!50!green,dotted,mark=triangle,mark options={solid,rotate=180},line width=4pt,]
-%  table[x=DOF,y=Classical]{bounds_3D.txt}
-%  node[pin={[pin edge={<-,solid,black!50!green,ultra thick}] 0:Classical estimate}] at (3.8387107053617489 ,  3434.4857095762368) {};
-%%node[pin={[pin edge={<-,solid,black!50!green,thick}] 0:Classical bound}] at (4.9497474683,3478.7271859448) {};
-%%\addlegendentry{Classical bound};
-%
-%\addplot [color=blue,dashed,mark=+,mark options={solid},line width=4pt,]
-%  table[x=DOF,y=Alternative]{bounds_3D.txt}
-%  node[pin={[pin edge={<-,solid,blue,ultra thick}] -90:New estimate}] at (5.0511740428693495   , 12.581899208609796 ) {};
-%%node[pin={[pin distance=1cm,pin edge={<-,solid,blue,thick}] -90:$\tilde{b}=\scalaire{\grad \cdot}{\grad \cdot}_{L^2}$}] at (3.7712361663, 1191.3435988333) {};
-%%\addlegendentry{$\tilde{b}=\scalaire{\grad \cdot}{\grad \cdot}_{L^2}$};
-%\end{axis}
-%\end{tikzpicture}
-%%\end{center}
-%%\caption{}
-%\end{tikzfigure}
-%}%
-%
-%%%%%%%%%%%%%
-%
-%
-%
-%
-% \end{columns} 
+\end{columns} 
 %
 %\begin{columns}
 %
@@ -537,15 +676,15 @@ $$g\equiv 0 ;\quad   h\equiv (2\pi k)\cdot \vec{n}.$$
 %}
 %\column{0.5}
 %
-%\block{Work in progress and future work}{
-%\begin{itemize}
-%\item Multi-D Goal-oriented Adaptivity;
-%\item Theoretical proof of if there exists a $\hat{b}$ such that the alternative estimate is sharper than the classical one;
-%\item Widen the study to other kind of problems (eg. diffusion-convection problems);
-%\item Application to non-linear quantities of interest.
-%\end{itemize}
-%%
-%}
+\block{Work in progress and future work}{
+\begin{itemize}
+\item Multi-D Goal-oriented Adaptivity;
+\item Theoretical proof of if there exists a $\hat{b}$ such that the alternative estimate is sharper than the classical one;
+\item Widen the study to other kind of problems (eg. diffusion-convection problems);
+\item Application to non-linear quantities of interest.
+\end{itemize}
+%
+}
 %\column{0.25}
 %
 %
@@ -637,5 +776,5 @@ $$g\equiv 0 ;\quad   h\equiv (2\pi k)\cdot \vec{n}.$$
 %\block{Formations and Mobility}{blabla}
 %%%%%%%%%%%%%
 %
- \end{columns} 
-  \end{document}
+ %\end{columns} 
+\end{document}

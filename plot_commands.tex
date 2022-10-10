@@ -1,0 +1,122 @@
+\tikzset{mark size=3}
+%==============================================================================================================================================================================
+%: elemental routines
+%==============================================================================================================================================================================
+
+\newcommand{\FormatIntegerTwoDigit}[2]{
+\pgfmathsetbasenumberlength{2}
+\pgfmathbasetodec#2{#1}{10}
+}
+
+\newcommand{\FormatIntegerThreeDigit}[2]{
+\pgfmathsetbasenumberlength{3}
+\pgfmathbasetodec#2{#1}{10}
+}
+
+\newcommand{\getelem}[4]{
+    \pgfplotstablegetelem{#3}{#2}\of{#1}%
+    \pgfmathtruncatemacro#4{\pgfplotsretval}
+    \pgfplotstableclear{\datatable}
+}
+
+
+\newcommand{\getelemdbl}[4]{
+    \pgfplotstablegetelem{#3}{#2}\of{#1}%
+    \pgfmathsetmacro#4{\pgfplotsretval}    
+    \pgfplotstableclear{\datatable}
+}
+
+
+
+\newcommand{\findmax}[3]{
+  \pgfplotstableread{#1}{\datatable}
+  \pgfplotstablesort[sort key={#2},sort cmp={float >}]{\sorted}{\datatable}%
+  \pgfplotstablegetelem{0}{#2}\of{\sorted}%
+  \pgfmathtruncatemacro#3{\pgfplotsretval}
+  \pgfplotstableclear{\datatable}
+}
+
+\newcommand{\findmin}[3]{
+  \pgfplotstableread{#1}{\datatable}
+  \pgfplotstablesort[sort key={#2},sort cmp={float <}]{\sorted}{\datatable}%
+  \pgfplotstablegetelem{0}{#2}\of{\sorted}%
+  \pgfmathtruncatemacro#3{\pgfplotsretval}
+  \pgfplotstableclear{\datatable}
+  %
+}
+
+\newcommand{\findmaxDbl}[3]{
+  \pgfplotstableread{#1}{\datatable}
+  \pgfplotstablesort[sort key={#2},sort cmp={float >}]{\sorted}{\datatable}%
+  \pgfplotstablegetelem{0}{#2}\of{\sorted}%
+  \pgfmathsetmacro#3{\pgfplotsretval}
+  \pgfplotstableclear{\datatable}
+  %
+}
+
+\newcommand{\lastelement}[3]{
+\pgfplotstableread{#1}{\mytable}
+\pgfplotstablegetrowsof{\mytable} %Determine no. of rows
+\pgfmathtruncatemacro{\rows}{\pgfplotsretval}
+\pgfmathtruncatemacro{\lastrow}{\rows-1}
+\pgfplotstablegetelem{\lastrow}{#2}\of{\mytable}
+\pgfmathsetmacro#3{\pgfplotsretval}
+}
+
+
+\newcommand{\findminDbl}[3]{
+  \pgfplotstableread{#1}{\datatable}
+  \pgfplotstablesort[sort key={#2},sort cmp={float <}]{\sorted}{\datatable}%
+  \pgfplotstablegetelem{0}{#2}\of{\sorted}%
+  \pgfmathsetmacro#3{\pgfplotsretval}
+  \let#3=\pgfplotsretval
+  \pgfplotstableclear{\datatable}
+  %
+}
+
+\pgfplotsset{
+  log x ticks with fixed point/.style={
+      xticklabel={
+        \pgfkeys{/pgf/fpu=true}
+        \pgfmathparse{exp(\tick)}%
+        \pgfmathprintnumber[fixed relative, precision=3]{\pgfmathresult}
+        \pgfkeys{/pgf/fpu=false}
+      }
+  },
+  log y ticks with fixed point/.style={
+      yticklabel={
+        \pgfkeys{/pgf/fpu=true}
+        \pgfmathparse{exp(\tick)}%
+        \pgfmathprintnumber[fixed relative, precision=3]{\pgfmathresult}
+        \pgfkeys{/pgf/fpu=false}
+      }
+  }
+}
+
+
+
+\pgfplotscreateplotcyclelist{custom list style}{%
+color=red, solid, every mark/.append style={solid}, mark=*\\%
+color=blue, loosely dotted, every mark/.append style={solid}, mark=triangle*\\%
+color=black!50!green,dotted, every mark/.append style={solid}, mark=square*\\%
+color=black, dashed, every mark/.append style={solid},mark=diamond*\\%
+color=black!50!red, densely dotted, every mark/.append style={solid}, mark=otimes*\\%
+color=black!50!yellow, loosely dashed, every mark/.append style={solid},mark=*\\%
+color=black!50!blue,densely dashed, every mark/.append style={solid},mark=square*\\%
+color=black!50!magenta,dashdotted, every mark/.append style={solid},mark=otimes*\\%
+color=black!50!orange,dashdotdotted, every mark/.append style={solid},mark=star\\%
+color=black!50!cyan, densely dashdotted,every mark/.append style={solid},mark=diamond*\\%
+}
+
+\pgfplotsset{%
+%    every axis plot/.append style= {line width=2pt},
+        every axis plot/.append style= ultra thick,
+    cycle list name=custom list style,
+%    log x ticks with fixed point,
+%    legend style={at={(0.5,1.03)},anchor=south},
+%    legend columns=3,
+%    legend pos= outer north east,
+%    legend cell align=left,
+    }
+
+
