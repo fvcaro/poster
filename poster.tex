@@ -2,17 +2,16 @@
 
 \input{preambule.tex}
 
-\title{\parbox{\linewidth}{\centering A Painless Automatic $hp$-Adaptive Coarsening Strategy For Indefinite Problems: A Goal-Oriented Approach}}
-%\titlegraphic{\includegraphics[height=4.5cm]{Figures/Logo_MathMode}} %\quad \includegraphics[height=4.5cm]{Figures/inria-logo}}
+\title{\parbox{\linewidth}{\centering A painless multi-level automatic goal-oriented $hp$-adaptive coarsening strategy for elliptic and non-elliptic problems}}
+\titlegraphic{\includegraphics[height=4.5cm]{Figures/logo_bcam} \quad \includegraphics[height=4.5cm]{Figures/UPV-EHU-logo}}
 
 \author{{\underline{Vincent Darrigrand}, Julen Alvarez-Aramberri, Felipe V. Caro, Elisabete Alberdi, David Pardo}}
 %\institute{MathMode}
-  
 \settitle{ \centering \vbox{
      \centering
      \color{titlefgcolor} {\bfseries \Huge \@title \par}
      \vspace*{1em}
-     {\LARGE \it \@author \par} \vspace*{1em}  \@titlegraphic \\[\TP@titlegraphictotitledistance]\vspace*{1em} {\Large \@institute}
+     {\LARGE \it \@author \par} \vspace*{1em}  \@titlegraphic \\[\TP@titlegraphictotitledistance]\vspace*{-1em} {\Large \@institute}
 }}
 
 \input{plot_commands.tex}
@@ -20,64 +19,35 @@
 \begin{document} 
   
   \maketitle
-  \begin{columns}
-  %%
-  %%
+  \begin{columns}%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  %
  \column{0.5} 
- %%
- %%
-% \block{Motivation}{ %
-% \begin{quote}
-% Bla \\ bla \\ bla
-%\end{quote}
+ %
+ \block{Data structures}{ %
+%To ensure continuity and avoid the so-called \emph{hanging nodes} by construction, we use the data structures proposed by Zander et al. (2015), which impose a massive number of Dirichlet nodes throughout the overlay mesh(es). 
+%Our \enquote{painless} approach operates always on a single mesh. 
+%To do so, it requires defining a projector that simulates the presence of a coarse mesh without the trouble of handling one.
+%For a given subset of basis functions $\calS\subset \calF$ that generates the space $\H_\calS \subset \H_\calF$
+%Let $\calF = \{ \phi_{i} \}_{i=1}^{n_{\calF}}$ be a set of basis functions $\phi_i$, $\H_{\calF} \coloneqq \textrm{span}\{\phi_{1}, \dots, \phi_{n_{\calF}}\}$, and $n_{\calF} = \textrm{dim}(\H_{\calF})$.
+%that is, we extract the coefficients of $u_\calF$ corresponding to a given subset of basis functions $\calS\subset \calF$, and we set the others to zero.
+\innerblock{}{We define our \emph{projection operator} $\Pi_{\calF}^{\calS}$: $\H _{\calF} \longrightarrow \H_{\calS}$ as
+\begin{equation}
+ \Pi_{\calF}^{\calS} u_{\calF} \coloneqq \sum_{\phi_{i} \in \calS} u_{i} \phi_{i},
+\end{equation}
+for a given subset of basis functions $\calS\subset \calF$.}
 %
-%\innerblock{Objectives}{sharper a posteriori estimates}
-%}%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\block{A painless $hp$-adaptive strategy}{ %
-Let $\calF = \{ \phi_{i} \}_{i=1}^{n_{\calF}}$ be a set of basis functions $\phi_i$, $\H_{\calF} \coloneqq \textrm{span}\{\phi_{1}, \dots, \phi_{n_{\calF}}\}$, and $n_{\calF} = \textrm{dim}(\H_{\calF})$. For a given bilinear continuous form $b$, we consider the abstract variational formulation and its discrete version:
-\innerblock{}{
-\begin{quote}
-Find $u \in \H$ and $u_{\calF} \in \H_{\calF}$ such that
-%
-\begin{align}
-%\SwapAboveDisplaySkip
-b(u,\phi)=f(\phi), \quad \forall \phi\in \H&;&b(u_{\calF},\phi_{\calF}) = f(\phi_{\calF}), \quad \forall \phi_{\calF} \in \H_{\calF},%\label{direct}%\\
-%b(u,v^*)=\alert<1>{l(u)}&\quad \forall u\in \H, \label{adjoint}
-\end{align}
-where $\H$ is a Hilbert functional space and $\H_{\calF}$ is a finite element discretization $\calT$ of $\H$, such that $\H_{\calF} \subset \H$.
-\end{quote}
-}
-%
-%Our \enquote{painless} approach operates always on a single mesh. To do so, it requires defining a projector that simulates the presence of a coarse mesh without the trouble of handling one.
-%\innerblock{}{For a given subset of basis functions $\calS\subset \calF$ that generates the space $\H_\calS \subset \H_\calF$, we define our \emph{projection operator} $\Pi_{\calF}^{\calS}$: $\H _{\calF} \longrightarrow \H_{\calS}$ as
-%\begin{equation}
-%  \Pi_{\calF}^{\calS} u_{\calF} \coloneqq \sum_{\phi_{i} \in \calS} u_{i} \phi_{i},
-%\end{equation}
-%that is, we extract the coefficients of $u_\calF$ corresponding to the basis functions in $\calS$, and we set the others to zero.}
-%
-For any element $K$, we denote by $\calR_K$ the set of \emph{removable} basis functions associated to $K$, by $\abs{\calR_K}$ its cardinality, and by $\H_{\calR_K}$ its associated space.
-\innerblock{}{We express any $u_\calF \in \H_\calF$, as
+%For any element $K$, we denote by $\calR_K$ the set of \emph{removable} basis functions associated to $K$, by $\abs{\calR_K}$ its cardinality, and by $\H_{\calR_K}$ its associated space.
+We express any $u_\calF \in \H_\calF$, as
 %
 \begin{equation}
   u_{\calF} =  \Pi_{\calF}^{\calE_K} u_{\calF} + \Pi_{\calF}^{\calR_K} u_{\calF},
 \end{equation}
-where $\calE_K \coloneqq \calF \setminus \calR_K$ is the subset of \emph{essential} basis functions.
-}
-Since we consider a single mesh at a time, the solution $u_{\calE_K}$ in $\calE_K$ is never computed. Instead, we employ the projection of $u_\calF$ into $\calE_K$ to approximate it when necessary.
-%\begin{center}
-%\coloredbox[bgcolor=myred,linewidth=0pt,fgcolor=white]{\centering \textbf{Which method provides the best a~posteriori estimate?}}
-%\end{center}
-%
-}
-%%%%%%%%%%%%%%%%%%%%
-\block{Data structures}{ %
-%To ensure continuity and avoid the so-called \emph{hanging nodes} by construction, we use the data structures proposed by Zander et al. (2015), which impose a massive number of Dirichlet nodes throughout the overlay mesh(es). 
-We illustrate a 1D multi-level $hp$-grid with hierarchical basis functions proposed by Zander and collaborators.
-
+where $\calE_K \coloneqq \calF \setminus \calR_K$ is the subset of \emph{essential} basis functions and $\calR_K$ the set of \emph{removable} basis functions associated to $K$.
+%Since we consider a single mesh at a time, the solution $u_{\calE_K}$ in $\calE_K$ is never computed. Instead, we employ the projection of $u_\calF$ into $\calE_K$ to approximate it when necessary. 
+We illustrate of a 1D multi-level $hp$-grid with hierarchical basis functions.
 \innerblock{}{
 \begin{center}
-	\begin{tikzpicture}[scale=3,x=4cm,y=2cm,decoration={markings,% switch on markings mark=% actually add a mark
+	\begin{tikzpicture}[scale=3,x=4cm,y=2cm,decoration={markings,%switch on markings mark=% actually add a mark
      	mark=at position 0 with{\draw (0pt,-2pt) -- (0pt,2pt);},
      	mark=at position 1 with{\draw (0pt,-2pt) -- (0pt,2pt);},
 	}
@@ -397,24 +367,21 @@ We illustrate a 1D multi-level $hp$-grid with hierarchical basis functions propo
 \end{tikzpicture}
 \end{center}
 }
-}%
-%%%%%%%%%%%%%%%
-%%
-  %%
- \column{0.5} 
- %%
- %%
-%%%%%%%%%%%%%%%
-\block{Extension to goal-oriented adaptivity}{%These quantities are often called quantities of interest (QoIs). To control the error in the QoI, Goal-oriented adaptivity (GOA) aims to approximate specific quantities of finite element solutions. 
-We introduce the following adjoint problem and its discrete counterpart as follows:
+}
+ %
+\block{Problem settings}{ %
+We consider the abstract variational formulation and its discrete version:
 \begin{quote}
-Find $v \in \H$ and $v_{\calF}\in \H_{\calF}$ such that
+Find $u \in \H$ and $u_{\calF} \in \H_{\calF}$ such that
 %
 \begin{align}
-b(\phi,v)=l(\phi), \quad \forall \phi\in \H&;&b(\phi_{\calF},v_{\calF})=l(\phi_{\calF}), \quad \forall \phi_{\calF} \in \H_{\calF},
+%\SwapAboveDisplaySkip
+b(u,\phi)=f(\phi), \quad \forall \phi\in \H&;&b(u_{\calF},\phi_{\calF}) = f(\phi_{\calF}), \quad \forall \phi_{\calF} \in \H_{\calF}.%\label{direct}%\\
+%b(u,v^*)=\alert<1>{l(u)}&\quad \forall u\in \H, \label{adjoint}
 \end{align}
-where $v_{\calF}$ stands for the Galerkin approximation of the solution $v$ to the adjoint problem associated with the space $\H_{\calF}$.
+%where $\H$ is a Hilbert functional space and $\H_{\calF}$ is a finite element discretization $\calT$ of $\H$, such that $\H_{\calF} \subset \H$.
 \end{quote}
+%
 \innerblock{}{
 \begin{quote}
 The objective is to control
@@ -425,41 +392,71 @@ The objective is to control
 where $l: \H \longrightarrow \R$ is a linear continuous form.
 \end{quote}
 }
+We introduce the following adjoint problem and its discrete counterpart as follows:
+\begin{quote}
+Find $v \in \H$ and $v_{\calF}\in \H_{\calF}$ such that
 %
+\begin{align}
+b(\phi,v)=l(\phi), \quad \forall \phi\in \H&;&b(\phi_{\calF},v_{\calF})=l(\phi_{\calF}), \quad \forall \phi_{\calF} \in \H_{\calF}.
+\end{align}
+%where $v_{\calF}$ stands for the Galerkin approximation of the solution $v$ to the adjoint problem associated with the space $\H_{\calF}$.
+\end{quote}
 }
+%
 \block{Error indicators}{ %
-As a consequence of assuming that $\calE_K$ is (quasi) $b$-orthogonal to $\calR_K$ due to the (quasi)-orthogonality assumption of the basis functions, then
-\begin{equation}
-  \abs{l(u_\calF)-l(u_{\calE_K})} \simeq \abs{b(\Pi_{\calF}^{\calR_K} u_{\calF},\Pi_{\calF}^{\calR_K} v_{\calF})}
-  \leq  \abs{a(\Pi_{\calF}^{\calR_K} u_{\calF},\Pi_{\calF}^{\calR_K} v_{\calF})}.
-\end{equation}
 \innerblock{}{
-We define the element-wise indicators as
+We define the element-wise indicators for energy-norm based elliptic problems as
+ \begin{equation}
+  \eta_K\coloneqq \norm{\Pi_{\calF}^{\calR_K} u_{\calF}}_e^2, \quad \forall K \in \calT.\label{eq:SPDindicators}
+\end{equation}
+}
+\innerblock{}{
+We define the element-wise indicators for goal-oriented problems as
 \begin{equation}
   \eta_K \coloneqq \abs{a(\Pi_{\calF}^{\calR_K} u_{\calF},\Pi_{\calF}^{\calR_K} v_{\calF})}, \quad \forall K\in \calT.
 \end{equation}
 }
-}%
-%%%%%%%%%%%%%%%%
-\block{Indefinite problem}{%
+}
+%
+ \column{0.5} 
+ %
+\block{An indefinite problem}{%
 Find $u$ such that, 
 		\begin{alignat*}{2}
-			- \nabla \cdot ( \sigma \nabla u) - k^{2}u &= \scalar{\mathds{1}_{(0,\frac{1}{4})^{d}}}{\cdot}_{L^{2}(\Omega)} \,\, && \text{ in } \Omega \subset \R^{d},\\
+			- \nabla \cdot ( \sigma \nabla u) - k^{2}u &= \scalar{\mathds{1}_{(0,\frac{1}{4})^{2}}}{\cdot}_{L^{2}(\Omega)} \,\, && \text{ in } \Omega \subset \R^{2},\\
 			u&=0 \,\, && \text{ on } {\color{blue}{\Gamma_{D}}},\\
 			\grad u\cdot \vec{n} &= 0 \,\, && \text{ on } {\color{red}{\Gamma_{N}}}.
 		\end{alignat*}%
 \begin{align}
 \SwapAboveDisplaySkip
-	l(\cdot)=\scalar{\mathds{1}_{(\frac{3}{4},1)^{d}}}{\cdot}_{L^{2}(\Omega)};&&a(\cdot,\cdot) =& \, \sum_{K} \abs{\scalar{\grad \cdot}{\grad \cdot}_{L^{2}(K)}} + \abs{k^{2}} \abs{\scalar{\cdot}{\cdot}_{L^{2}(K)}}.
+	l(\cdot)=\scalar{\mathds{1}_{(\frac{3}{4},1)^{2}}}{\cdot}_{L^{2}(\Omega)};&&a(\cdot,\cdot) =& \, \sum_{K} \abs{\scalar{\grad \cdot}{\grad \cdot}_{L^{2}(K)} + \abs{k^{2}} \scalar{\cdot}{\cdot}_{L^{2}(K)}}.
 \end{align}
-
 
 \begin{multicols}{2}
 %\begin{subcolumns}
 %\subcolumn{0.333}
-\innerblock{2D}{
+\innerblock{$k = (0, 0)$}{
 \begin{center}
-$$k = (8 \cdot 2 \pi, 2 \pi).$$
+ \begin{tikzpicture}[scale=2.89,x=2.5cm,y=2.5cm]
+    \node(n1) at (0.25,0){};
+    \node(n2) at (0.75,0){};
+    \node(n3) at (0.75,0.25){};
+
+    \node(n4) at (0.25,0.25){};
+    \node(n5) at (0.5,0.5){};
+    \draw (n4) rectangle (n5) node[pos=0.5] {$\Omega_{f}$};
+
+    \node(n7) at (0.75,0.75){};
+    \draw (n5) rectangle (n7) node[pos=0.5] {$\Omega_{l}$};
+
+    \draw[color=blue, thick,] (0.25,0) -- (0.75,0) -- (0.75,0.25) -- (1,0.25) -- (1,0.75) -- (0.75,0.75) -- (0.75,1) -- (0.25,1) -- (0.25,0.75) -- (0,0.75) -- (0,0.25) -- (0.25,0.25) -- (0.25,-0.005);
+    \node(omega) at (0.5,0.90){$\Omega$};
+    \draw[color=blue, thick] (n1.center) --  (n2.center) -- node[pos=0.5,pin={0: $\Gamma_{D}$}]{} (n3.center);
+  \end{tikzpicture}
+\end{center}
+}
+\innerblock{$k = (4 \cdot 2 \pi, 2 \pi)$}{
+\begin{center}
 \begin{tikzpicture}[scale=2.75,x=2.5cm,y=2.5cm]
     	\node(n1) at (0,0){};
     	\node(n2) at (1,0){};
@@ -471,12 +468,12 @@ $$k = (8 \cdot 2 \pi, 2 \pi).$$
     	\node(n7) at (0.75,0.75){};
     	\node(n8) at (0.25,0.75){};
 
-    	\draw (n1) rectangle (n5) node[pos=0.5] {$f$};
-    	\draw (n7) rectangle (n3) node[pos=0.5] {$l$};
+    	\draw (n1) rectangle (n5) node[pos=0.5] {$\Omega_{f}$};
+    	\draw (n7) rectangle (n3) node[pos=0.5] {$\Omega_{l}$};
 
     	\draw[color=blue, thick] (n5) rectangle (n7);
 
-    	\draw[color=blue, thick] (n4.center) -- (n1.center) -- (n2.center) node[pos=0.5,pin={-90: $\Gamma_{D}$}]{};
+    	\draw[color=blue, thick] (n4.center) -- node[pos=0.5,pin={180: $\Gamma_{D}$}]{} (n1.center) -- (n2.center);
     	\draw[color=red, thick] (n4.center)--  (n3.center) -- node[pos=0.5,pin={0: $\Gamma_{N}$}]{} (n2.center);
 
     	\node(omega) at (0.5,0.85){$\Omega$};
@@ -485,183 +482,41 @@ $$k = (8 \cdot 2 \pi, 2 \pi).$$
 \end{center}
 }
 %\subcolumn{0.333}
-\innerblock{3D}{
-$$k = (4 \cdot 2 \pi, 2 \pi).$$
-${\color{blue}{\Gamma_{D}}} =\text{ faces whose intersection is (0,0,0) }.$
-${\color{red}{\Gamma_{N}}}   =\text{ faces whose intersection is (1,1,1) }.$
-\begin{center}
-\tdplotsetmaincoords{60}{125}
-\begin{tikzpicture}%[x=0.3\colwidth]
-	[tdplot_main_coords,
-		grid/.style={very thin,gray},
-		axis/.style={->,black,thin},
-		cube/.style={ very thick},
-		cube hidden/.style={very thick,dashed},
-		QoI/.style={very thick,fill=green},%,pattern=custom north west lines, hatchcolor=green!100!black,opacity=1},
-		%x=-2cm,
-		%y=2cm,
-		%z=2cm,
-		scale=3.8
-		]
-	%draw a grid in the x-y plane
-%	\foreach \x in {-0.5,0,...,2.5}
-%		\foreach \y in {-0.5,0,...,2.5}
-%		{
-%			\draw[grid] (\x,-0.5) -- (\x,2.5);
-%			\draw[grid] (-0.5,\y) -- (2.5,\y);
-%		}			
-
-	%draw the axes
-	\draw[axis] (1,0,0) -- (1.5,0,0) node[anchor=west]{$x$};
-	\draw[axis] (0,1,0) -- (0,1.5,0) node[anchor=west]{$y$};
-	\draw[axis] (0,0,1) -- (0,0,1.5) node[anchor=west]{$z$};
-
-	%draw the bottom of the cube
-	\draw[cube,dashed, opacity=1] (0,0,0) -- (0,1,0) -- (1,1,0) -- (1,0,0) -- cycle;
-	
-	%draw the back-right of the cube
-	\draw[cube,dashed,opacity=1] (0,0,0) -- (0,1,0) -- (0,1,1) -- (0,0,1) -- cycle;
-
-	%draw the back-left of the cube
-	\draw[cube,dashed,opacity=1] (0,0,0) -- (1,0,0) -- (1,0,1) -- (0,0,1) -- cycle;
-
-	%\node[pin={[pin distance=1cm,pin edge={<-,red,ultra thick,dashed}] 70:$\color{red}{\Gamma_D}$}] at (0,0.5,0.8) {};
-	\node at (0.7,0.6,0.5){$\Omega$};
-	%draw the front-right of the cube
-	\draw[cube,fill=blue ,opacity=0.5] (1,0,0) -- (1,1,0) -- (1,1,1) -- (1,0,1) -- cycle;
-
-	%draw the front-left of the cube
-	\draw[cube,fill=blue,opacity=0.5] (0,1,0) -- (1,1,0) -- (1,1,1) -- (0,1,1) -- cycle;
-
-	%draw the top of the cube
-	\draw[cube,fill=blue,opacity=0.5] (0,0,1) -- (0,1,1) -- (1,1,1) -- (1,0,1) -- cycle;
-	\draw[cube] (0,0,1) -- (0,1,1) -- (1,1,1) -- (1,0,1) -- cycle;
-	
-	%\node[pin={[pin distance=1cm,pin edge={<-,solid,blue,ultra thick}] 110:$\color{blue}{\Gamma_N}$}] at  (1/2,0.05,1) {};
-	
-	%draw the QoI
-	%\draw[QoI] (0.9,0.9,1) -- (0.9,1,1) -- (1,1,1) -- (1,0.9,1) -- cycle;
-%	%draw the QoI
-	%\draw[QoI] (1,0.9,0.9) -- (1,0.9,1) -- (1,1,1) -- (1,1,0.9) -- cycle;
-%	%draw the QoI
-	%\draw[QoI] (0.9,1,0.9) -- (0.9,1,1) -- (1,1,1) -- (1,1,0.9) -- cycle;
-	
-	%\node[pin={[pin distance=1.7cm,pin edge={<-,solid,green,ultra thick}] 0:$\color{green!50!black}{QoI}$}] at  (1,1,1) {};
-	
-	%\node[anchor=south, color=blue] at (0,1/2,1) {$\Gamma_N$};
-	%\node[anchor=south, color=red] at (1/2,0,1) {$\Gamma_D$};
-	%\node[anchor=west, color=green!50!black] at (0,1,1/2) {$QoI$};
-	
-\end{tikzpicture}
-%}
-\end{center}
-%\vspace{.5cm}
-}
 %\end{subcolumns}
 \end{multicols}
-}%
-\end{columns}
-
-\begin{columns}
-
- \column{0.3333} 
-
- \block{2D numerical results}{%
-
-\setlength{\plotheight}{15cm}
-\setlength{\plotwidth}{20cm}
-
- \begin{tikzfigure}[Evolution of the error in the QoI.]
-
-\begin{tikzpicture}
-\begin{axis}[width=\plotwidth,height=\plotheight,
-		xlabel={Number of DoFs},
-		%x dir=reverse,
-		ylabel=Relative error in \% (log scale),
-		ymode=log,
-		xmode=log,
-		%yticklabel pos=right,
-		ylabel near ticks,
-		xlabel near ticks,
-		enlargelimits=true,
-		legend style={draw=black,fill=white,legend cell align=left, at={(0.5,1.01)}, anchor=south},
-		legend columns=-1
-		]
-     	\addplot+[ line width=1pt] table[x expr=\thisrow{nr_dof},y expr=\thisrow{Error}] {Figures/Helm2DGOA/hp/order_1/outputs.txt}node[pos=0.9, pin={[pin edge=solid]180:$hp$}]{};
-	
-	\addplot+[ line width=1pt] table[x expr=\thisrow{nr_dof},y expr=\thisrow{Error}] {Figures/Helm2DGOA/h/order_1/outputs.txt}node[pos=0.9, pin={[pin edge=solid]90:$h$ ($p=1$)}]{};
-	
-	\addplot+[ line width=1pt] table[x expr=\thisrow{nr_dof},y expr=\thisrow{Error}] {Figures/Helm2DGOA/h/order_2/outputs.txt}node[pos=0.9, pin={[pin edge=solid]-90:$h$ ($p=2$)}]{};
-
-\end{axis}
-\end{tikzpicture}
-%\end{center}
-%\caption{}
-\end{tikzfigure}
-}
-%
-\note[targetoffsetx=-3cm, targetoffsety=-2cm, angle=0, radius=0cm,width=7cm, rotate=10, connection, linewidth=.2cm,
-     roundedcorners=30, innersep=1cm]{\centering\vspace{1.5cm}\textbf{Published!}
-\scriptsize
-%Felipe V. Caro and Vincent Darrigrand and Julen Alvarez-Aramberri and Elisabete Alberdi and David Pardo.\\
-%A painless multi-level automatic goal-oriented $hp$-adaptive coarsening strategy for elliptic and non-elliptic problems.\\
-{\em Computer Methods in Applied Mechanics and Engineering}, 2022.
- }
-%
-\column{0.3333} 
-% 
-\block{3D numerical results}{%
-%
-\setlength{\plotheight}{15cm}
-\setlength{\plotwidth}{20cm}
-
- \begin{tikzfigure}[Evolution of the error in the QoI.]
-
-\begin{tikzpicture}
-\begin{axis}[width=\plotwidth,height=\plotheight,
-		xlabel={Number of DoFs},
-		%x dir=reverse,
-		ylabel=Relative error in \% (log scale),
-		ymode=log,
-		xmode=log,
-		%yticklabel pos=right,
-		ylabel near ticks,
-		xlabel near ticks,
-		enlargelimits=true,
-		legend style={draw=black,fill=white,legend cell align=left, at={(0.5,1.01)}, anchor=south},
-		legend columns=-1
-		]
-%\legend{$\abs{l(e_h)}$,Classical bound,New bound}
-     	\addplot+[ line width=1pt] table[x expr=\thisrow{nr_dof},y expr=\thisrow{Error}] {Figures/Helm3DGOA/hp/order_1/outputs.txt}node[pos=0.9, pin={[pin edge=solid]180:$hp$}]{};
-
-\end{axis}
-\end{tikzpicture}
-%\end{center}
-%\caption{}
-\end{tikzfigure}
-}%
-
-\note[targetoffsetx=-3cm, targetoffsety=-2cm, angle=0, radius=0cm,width=7cm, rotate=10, connection, linewidth=.2cm,
-     roundedcorners=30, innersep=1cm]{\centering\vspace{1.5cm}\textbf{Published!}
-\scriptsize
-%Felipe V. Caro and Vincent Darrigrand and Julen Alvarez-Aramberri and Elisabete Alberdi and David Pardo.\\
-%A painless multi-level automatic goal-oriented $hp$-adaptive coarsening strategy for elliptic and non-elliptic problems.\\
-{\em Computer Methods in Applied Mechanics and Engineering}, 2022.
- }
- 
- \column{0.25}
- 
- \block{Work in progress}{
-\begin{itemize}
-\item Multi-adaptive goal-oriented;
-\item Magnetotellurics;
-\item Controlled Source Electromagnetics;
-\end{itemize}
-%
 }
 
+\block{Final $hp$-adapted meshes for Poisson example}{%
+\plothp{CrossGOA}
+}
 
+\block{Final $hp$-adapted meshes for Helmholtz example}{%
+\plothp{Helm2DGOA}
+}
 \end{columns} 
+% 
+%\note[targetoffsetx=-3cm, targetoffsety=-2cm, angle=0, radius=0cm,width=7cm, rotate=10, connection, linewidth=.2cm,
+%     roundedcorners=30, innersep=1cm]{\centering\vspace{1.5cm}\textbf{Published!}
+%\scriptsize
+%%Felipe V. Caro and Vincent Darrigrand and Julen Alvarez-Aramberri and Elisabete Alberdi and David Pardo.\\
+%%A painless multi-level automatic goal-oriented $hp$-adaptive coarsening strategy for elliptic and non-elliptic problems.\\
+%{\em Computer Methods in Applied Mechanics and Engineering}, 2022.
+% }
+\end{document}
+%
+% \block{Convergence}{%
+% \begin{tikzfigure}[Evolution of the error in the QoI.]
+%	\errorplotlog{Helm2DGOA}{Error}
+%\end{tikzfigure}
+%}
+%%
+%\note[targetoffsetx=-3cm, targetoffsety=-2cm, angle=0, radius=0cm,width=7cm, rotate=10, connection, linewidth=.2cm,
+%     roundedcorners=30, innersep=1cm]{\centering\vspace{1.5cm}\textbf{Published!}
+%\scriptsize
+%%Felipe V. Caro and Vincent Darrigrand and Julen Alvarez-Aramberri and Elisabete Alberdi and David Pardo.\\
+%%A painless multi-level automatic goal-oriented $hp$-adaptive coarsening strategy for elliptic and non-elliptic problems.\\
+%{\em Computer Methods in Applied Mechanics and Engineering}, 2022.
+% }
 %
 %\begin{columns}
 %
@@ -676,15 +531,15 @@ ${\color{red}{\Gamma_{N}}}   =\text{ faces whose intersection is (1,1,1) }.$
 %}
 %\column{0.5}
 %
-\block{Work in progress and future work}{
-\begin{itemize}
-\item Multi-D Goal-oriented Adaptivity;
-\item Theoretical proof of if there exists a $\hat{b}$ such that the alternative estimate is sharper than the classical one;
-\item Widen the study to other kind of problems (eg. diffusion-convection problems);
-\item Application to non-linear quantities of interest.
-\end{itemize}
-%
-}
+%\block{Work in progress and future work}{
+%\begin{itemize}
+%\item Multi-D Goal-oriented Adaptivity;
+%\item Theoretical proof of if there exists a $\hat{b}$ such that the alternative estimate is sharper than the classical one;
+%\item Widen the study to other kind of problems (eg. diffusion-convection problems);
+%\item Application to non-linear quantities of interest.
+%\end{itemize}
+%%
+%}
 %\column{0.25}
 %
 %
@@ -777,4 +632,75 @@ ${\color{red}{\Gamma_{N}}}   =\text{ faces whose intersection is (1,1,1) }.$
 %%%%%%%%%%%%%
 %
  %\end{columns} 
-\end{document}
+ 
+% \innerblock{3D}{
+%$$k = (4 \cdot 2 \pi, 2 \pi).$$
+%${\color{blue}{\Gamma_{D}}} =\text{ faces whose intersection is (0,0,0) }.$
+%${\color{red}{\Gamma_{N}}}   =\text{ faces whose intersection is (1,1,1) }.$
+%\begin{center}
+%\tdplotsetmaincoords{60}{125}
+%\begin{tikzpicture}%[x=0.3\colwidth]
+%	[tdplot_main_coords,
+%		grid/.style={very thin,gray},
+%		axis/.style={->,black,thin},
+%		cube/.style={ very thick},
+%		cube hidden/.style={very thick,dashed},
+%		QoI/.style={very thick,fill=green},%,pattern=custom north west lines, hatchcolor=green!100!black,opacity=1},
+%		%x=-2cm,
+%		%y=2cm,
+%		%z=2cm,
+%		scale=3.8
+%		]
+%	%draw a grid in the x-y plane
+%%	\foreach \x in {-0.5,0,...,2.5}
+%%		\foreach \y in {-0.5,0,...,2.5}
+%%		{
+%%			\draw[grid] (\x,-0.5) -- (\x,2.5);
+%%			\draw[grid] (-0.5,\y) -- (2.5,\y);
+%%		}			
+%
+%	%draw the axes
+%	\draw[axis] (1,0,0) -- (1.5,0,0) node[anchor=west]{$x$};
+%	\draw[axis] (0,1,0) -- (0,1.5,0) node[anchor=west]{$y$};
+%	\draw[axis] (0,0,1) -- (0,0,1.5) node[anchor=west]{$z$};
+%
+%	%draw the bottom of the cube
+%	\draw[cube,dashed, opacity=1] (0,0,0) -- (0,1,0) -- (1,1,0) -- (1,0,0) -- cycle;
+%	
+%	%draw the back-right of the cube
+%	\draw[cube,dashed,opacity=1] (0,0,0) -- (0,1,0) -- (0,1,1) -- (0,0,1) -- cycle;
+%
+%	%draw the back-left of the cube
+%	\draw[cube,dashed,opacity=1] (0,0,0) -- (1,0,0) -- (1,0,1) -- (0,0,1) -- cycle;
+%
+%	%\node[pin={[pin distance=1cm,pin edge={<-,red,ultra thick,dashed}] 70:$\color{red}{\Gamma_D}$}] at (0,0.5,0.8) {};
+%	\node at (0.7,0.6,0.5){$\Omega$};
+%	%draw the front-right of the cube
+%	\draw[cube,fill=blue ,opacity=0.5] (1,0,0) -- (1,1,0) -- (1,1,1) -- (1,0,1) -- cycle;
+%
+%	%draw the front-left of the cube
+%	\draw[cube,fill=blue,opacity=0.5] (0,1,0) -- (1,1,0) -- (1,1,1) -- (0,1,1) -- cycle;
+%
+%	%draw the top of the cube
+%	\draw[cube,fill=blue,opacity=0.5] (0,0,1) -- (0,1,1) -- (1,1,1) -- (1,0,1) -- cycle;
+%	\draw[cube] (0,0,1) -- (0,1,1) -- (1,1,1) -- (1,0,1) -- cycle;
+%	
+%	%\node[pin={[pin distance=1cm,pin edge={<-,solid,blue,ultra thick}] 110:$\color{blue}{\Gamma_N}$}] at  (1/2,0.05,1) {};
+%	
+%	%draw the QoI
+%	%\draw[QoI] (0.9,0.9,1) -- (0.9,1,1) -- (1,1,1) -- (1,0.9,1) -- cycle;
+%%	%draw the QoI
+%	%\draw[QoI] (1,0.9,0.9) -- (1,0.9,1) -- (1,1,1) -- (1,1,0.9) -- cycle;
+%%	%draw the QoI
+%	%\draw[QoI] (0.9,1,0.9) -- (0.9,1,1) -- (1,1,1) -- (1,1,0.9) -- cycle;
+%	
+%	%\node[pin={[pin distance=1.7cm,pin edge={<-,solid,green,ultra thick}] 0:$\color{green!50!black}{QoI}$}] at  (1,1,1) {};
+%	
+%	%\node[anchor=south, color=blue] at (0,1/2,1) {$\Gamma_N$};
+%	%\node[anchor=south, color=red] at (1/2,0,1) {$\Gamma_D$};
+%	%\node[anchor=west, color=green!50!black] at (0,1,1/2) {$QoI$};
+%	
+%\end{tikzpicture}
+%%}
+%\end{center}
+%%\vspace{.5cm}

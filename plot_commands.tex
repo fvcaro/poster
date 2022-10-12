@@ -1,8 +1,124 @@
+% !TEX root = poster.tex
 \tikzset{mark size=3}
-%==============================================================================================================================================================================
-%: elemental routines
-%==============================================================================================================================================================================
 
+\newcommand{\PbName}{}
+\newcommand{\ColName}{}
+\newcommand{\FigurePath}{Figures}
+\newcommand{\DataPath}{}
+
+%==========
+% \errorplotlog
+%==========
+\newcommand{\errorplotlog}[3][]{
+
+  \renewcommand{\DataPath}{\FigurePath/#2}
+  \renewcommand{\PbName}{#2}
+  \renewcommand{\ColName}{#3} 
+  
+  %\findmax{\DataPath/h/order_2/outputs.txt}{nr_dof}{\maxdof}
+  %\findmin{\DataPath/h/order_2/outputs.txt}{nr_dof}{\mindof}
+  %\findmaxDbl{\DataPath/hp/order_1/outputs.txt}{Error}{\maxerror}
+  %\findminDbl{\DataPath/hp/order_1/outputs.txt}{Error}{\minerror}
+
+  \tikzset{/tikz/external/export next=false}
+  \begin{tikzpicture}
+    \pgfplotsset{xmode=log}
+
+    \begin{axis}[width=\plotwidth,height=\plotheight,
+		xlabel={Number of DoFs},
+		%x dir=reverse,
+		ylabel=Relative error in \% (log scale),
+		ymode=log,
+		xmode=log,
+		%ymin=\minerror,
+		%ymax=\maxerror,
+		%xmin=\mindof,
+		%xmax=\maxdof,
+		ytick={0.0000001, 0.0001, 0.1, 100},
+		%extra y ticks={\minerror,\maxerror},
+		%yticklabel pos=right,
+		ylabel near ticks,
+		xlabel near ticks,
+		enlargelimits=true,
+		legend style={draw=black,fill=white,legend cell align=left, at={(0.5,1.01)}, anchor=south},
+		legend columns=-1
+		]
+		\addplot+[ line width=1pt] table[x expr=\thisrow{nr_dof},y expr=\thisrow{#3}] {\FigurePath/\PbName/hp/order_1/outputs.txt}node[pos=0.9, pin={[pin edge=solid]180:$hp$}]{};
+		
+		\addplot+[ line width=1pt] table[x expr=\thisrow{nr_dof},y expr=\thisrow{#3}] {\FigurePath/\PbName/h/order_1/outputs.txt}node[pos=0.9, pin={[pin edge=solid]90:$h$ ($p=1$)}]{};
+		
+		\addplot+[ line width=1pt] table[x expr=\thisrow{nr_dof},y expr=\thisrow{#3}] {\FigurePath/\PbName/h/order_2/outputs.txt} node[pos=0.9, pin={[pin edge=solid]-90:$h$ ($p=2$)}]{};
+    \end{axis}
+  \end{tikzpicture}
+} 
+%======
+% \plothp
+%======
+\newcommand{\plothp}[2][]{
+
+  \renewcommand{\DataPath}{\FigurePath/#2/hp/order_1}%\PbName/hp
+  \findmax{\DataPath/outputs.txt}{iter}{\endIter}
+  
+   \FormatIntegerThreeDigit{\endIter}{\endIterformated}
+   
+    %\centering
+    \begin{minipage}[b]{0.45\linewidth}
+    \raggedleft
+    %\begin{tikzfigure}[Final $hp$-adapted mesh with polynomial orders in the $x$-direction.]
+    \plothpmesh{#2/hp/order_1}{\endIterformated}{X}
+    %\end{tikzfigure}%
+    \end{minipage} \quad
+    \begin{minipage}[b]{0.45\linewidth}
+    \raggedright
+    %\begin{tikzfigure}[Final $hp$-adapted mesh with polynomial orders in the $y$-direction.]
+     \plothpmesh{#2/hp/order_1}{\endIterformated}{Y}
+    %\end{tikzfigure}%
+    \end{minipage}% 
+}
+
+\newcommand{\plothpmesh}[3]{
+  \renewcommand{\DataPath}{\FigurePath/#1}
+
+  \lastelement{\DataPath/outputs.txt}{MaxP}{\maxp}
+  \lastelement{\DataPath/outputs.txt}{MinP}{\minp}
+
+  \pgfplotsset{colormap/YlOrRd} 
+  \tikzset{/tikz/external/export next=false}
+  \begin{tikzpicture}
+    \begin{axis}[name=master,
+        width=0.95\textwidth,height=0.95\textwidth,
+        enlargelimits=false,
+        xlabel=$x$,
+        ylabel=$y$,
+        xlabel near ticks,
+        ylabel near ticks,
+        xtick={0,0.5,1},
+        ytick={0,0.5,1},
+        colorbar horizontal,
+        colorbar style={%
+            xtick={1,2,...,\maxp},
+            title={Order of approximation},
+            at={(master.above north west)},anchor=south west,
+            yshift=-5pt,
+            title style={
+                yshift=20pt
+              },
+            yshift=0.1em,
+            xticklabel pos=upper,
+          },
+        %point meta min=\minp,
+        point meta min=1,
+        point meta max=\maxp,
+      ]
+      %
+      \addplot [forget plot] graphics[xmin=0,xmax=1,ymin=0,ymax=1] {\DataPath/mesh_#3_#2.png};
+
+    \end{axis}
+  \end{tikzpicture}
+}
+%===============
+% elemental routines
+%===============
 \newcommand{\FormatIntegerTwoDigit}[2]{
 \pgfmathsetbasenumberlength{2}
 \pgfmathbasetodec#2{#1}{10}
@@ -93,8 +209,6 @@
   }
 }
 
-
-
 \pgfplotscreateplotcyclelist{custom list style}{%
 color=red, solid, every mark/.append style={solid}, mark=*\\%
 color=blue, loosely dotted, every mark/.append style={solid}, mark=triangle*\\%
@@ -118,5 +232,3 @@ color=black!50!cyan, densely dashdotted,every mark/.append style={solid},mark=di
 %    legend pos= outer north east,
 %    legend cell align=left,
     }
-
-

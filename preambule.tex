@@ -3,21 +3,25 @@
 \usepackage{amsmath,amsthm,mathrsfs,amssymb,amsfonts,dsfont,nicefrac,stmaryrd,yhmath}
 \usepackage{mathtools,cancel}
 \mathtoolsset{showonlyrefs=true}
-
 \usepackage{multicol}
-\usepackage{subfigure}
 \usepackage{csquotes}
 \usepackage{bold-extra,moresize}
 \usepackage{layout}
-\usepackage{pgfplots}
+\usepackage{tikz,pgfplots}
 \pgfplotsset{compat=newest}
-%\usetikzlibrary{plotmarks}
+\usepackage{pgfmath,pgffor}
+\usetikzlibrary{plotmarks}
+\usepackage{pgfplotstable}
 \usepackage{pgfpages}
 \usepackage{tikz-3dplot}
 
 \usetikzlibrary{datavisualization, patterns}
 \usetikzlibrary{arrows,positioning,shapes,trees,mindmap,shadows} 
 \usepgfplotslibrary{fillbetween}
+\usepgfplotslibrary{colormaps}
+\usepgfplotslibrary{colorbrewer}
+\usepgfplotslibrary{external}
+\usepgfplotslibrary{groupplots}
 \usetikzlibrary{decorations.markings,intersections,calc}
 \usetikzlibrary{decorations.pathreplacing}
 \usetikzlibrary{fit}
@@ -110,11 +114,11 @@
 \usetitlestyle{Wave}
 \useblockstyle{Envelope}
 
-%\newlength{\logoheight}
-%\setlength{\logoheight=2cm}
-
 \newlength{\plotwidth}
 \newlength{\plotheight}
+
+\setlength{\plotheight}{15cm}
+\setlength{\plotwidth}{20cm}
 
 \newcommand{\todoVD}[2][]%
 {\todo[color=green!25,#1]{\footnotesize{\bf Vincent:} #2}}
