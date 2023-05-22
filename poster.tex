@@ -1,11 +1,34 @@
 \documentclass[a0paper,25pt,portrait,blockverticalspace=20mm, colspace=20mm]{tikzposter}
 
 \input{preambule.tex}
+%%%%%%%%%%%%%%%%%%%
+\usetikzlibrary{matrix,chains,positioning,decorations.pathreplacing,arrows}
+%%%%%%%%%%%%%%%%%%%%%%%% tikz packaque
+%\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows}
+\tikzstyle{startstop} = [rectangle, rounded corners, minimum width=3cm, minimum height=1cm,text centered, draw=black, fill=red!30]
+\tikzstyle{process} = [rectangle, minimum width=1cm, minimum height=1cm, text centered, draw=black, fill=orange!30]
+\tikzstyle{process_2} = [rectangle, minimum width=2cm, minimum height=1cm, text centered, text width=4cm, draw=black, fill=orange!30]
+\tikzstyle{process_3} = [rectangle, minimum width=2cm, minimum height=1cm, text centered, text width=2cm, draw=black, fill=orange!30]
+\tikzstyle{process_4} = [rectangle, minimum width=1cm, minimum height=1cm, text centered, text width=1.2cm, draw=black, fill=orange!30]
+\tikzstyle{arrow} = [thick,->,>=stealth]
+%%%%%%%%%%%%%%%%%%%
+\newcommand{\mbbU}{\mathbb{U}}
+\newcommand{\mbbV}{\mathbb{V}}
+\newcommand{\mbbR}{\mathbb{R}}
+\DeclareMathOperator*{\argmin}{argmin}
+%%%%%%%%%%%%%%%%%%%
 
-\title{\parbox{\linewidth}{\centering A painless multi-level automatic goal-oriented $hp$-adaptive coarsening strategy for elliptic and non-elliptic problems}}
-\titlegraphic{\includegraphics[height=4.5cm]{Figures/logo_bcam} \quad \includegraphics[height=4.5cm]{Figures/UPV-EHU-logo}}
+\title{\parbox{\linewidth}{\centering A Machine Learning Minimal Residual Method for Solving Quantities of Interest of Parametric PDEs}}
+\titlegraphic{
+\includegraphics[height=4.6cm]{Figures/UoN_logo.png} \quad 
+\includegraphics[height=4.6cm]{Figures/IMA_PUCV_logo.png} \quad
+\includegraphics[height=4.6cm]{Figures/logo_bcam_v2.png} \quad 
+\includegraphics[height=4.6cm]{Figures/UPV-EHU-logo_v2.png} \quad
+\includegraphics[height=4.6cm]{Figures/EPSRC_logo.png}
+}
 
-\author{{\underline{Vincent Darrigrand}, Julen Alvarez-Aramberri, Felipe V. Caro, Elisabete Alberdi, David Pardo}}
+\author{{{\bf Ignacio Brevis}, Ignacio Muga, David Pardo, Oscar Rodr\'iguez, and Kristoffer G. van der Zee}}
 %\institute{MathMode}
 \settitle{ \centering \vbox{
      \centering
@@ -17,507 +40,355 @@
 \input{plot_commands.tex}
  
 \begin{document} 
-  
-  \maketitle
-  \begin{columns}%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  %
- \column{0.5} 
- %
- \block{Data structures}{ %
-%To ensure continuity and avoid the so-called \emph{hanging nodes} by construction, we use the data structures proposed by Zander et al. (2015), which impose a massive number of Dirichlet nodes throughout the overlay mesh(es). 
-%Our \enquote{painless} approach operates always on a single mesh. 
-%To do so, it requires defining a projector that simulates the presence of a coarse mesh without the trouble of handling one.
-%For a given subset of basis functions $\calS\subset \calF$ that generates the space $\H_\calS \subset \H_\calF$
-%Let $\calF = \{ \phi_{i} \}_{i=1}^{n_{\calF}}$ be a set of basis functions $\phi_i$, $\H_{\calF} \coloneqq \textrm{span}\{\phi_{1}, \dots, \phi_{n_{\calF}}\}$, and $n_{\calF} = \textrm{dim}(\H_{\calF})$.
-%that is, we extract the coefficients of $u_\calF$ corresponding to a given subset of basis functions $\calS\subset \calF$, and we set the others to zero.
-\innerblock{}{We define our \emph{projection operator} $\Pi_{\calF}^{\calS}$: $\H _{\calF} \longrightarrow \H_{\calS}$ as
+\maketitle
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{columns}
+%
+\column{0.5} 
+%
+\block{Problem definition}{ %
+We want:
+\begin{itemize}
+\item Solve parametric families of PDEs
+\item High precision in terms of a Quantity of Interest (QoI)
+\item Employing coarse meshes in Finite Elements
+\end{itemize}
+\innerblock{}{
+We consider the abstract variational formulation:\\
+Given $\lambda\in\Lambda\subset\mathbb R^p$, find $q(u) \in \mathbb{R}$ such that 
 \begin{equation}
- \Pi_{\calF}^{\calS} u_{\calF} \coloneqq \sum_{\phi_{i} \in \calS} u_{i} \phi_{i},
+\left\{
+\begin{array}{l}
+ u\in \mbbU \text{ solves:} \\
+B_{\lambda} u  = \ell_{\lambda} \quad \in \mbbV^*, %\quad \forall\, \lambda \in \Lambda.
+\end{array}
+\right.
+\quad \Leftrightarrow\quad 
+\left\{
+\begin{array}{l}
+ u\in \mbbU \text{ solves:} \\
+b_{\lambda}(u,v) = \ell_{\lambda}(v), \quad \forall\, v \in \mbbV. 
+\end{array}
+\right.
+\label{eq:continuous_variational_formulation}
 \end{equation}
-for a given subset of basis functions $\calS\subset \calF$.}
+}
 %
 %For any element $K$, we denote by $\calR_K$ the set of \emph{removable} basis functions associated to $K$, by $\abs{\calR_K}$ its cardinality, and by $\H_{\calR_K}$ its associated space.
-We express any $u_\calF \in \H_\calF$, as
-%
+We will use:
+\begin{itemize}
+\item Minimal-residual (MinRes) finite elements
+\item Artificial neural networks
+\end{itemize}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\block{Introduction to the method (weighted-MinRes)}{ %
+Given discrete conforming trial $\mbbU_n := \text{span}\{ \varphi_1,\dots, \varphi_n\} \subset \mbbU$, and test $\mbbV_m \subset \mbbV$ spaces such that $\dim \mbbV_m > \dim \mbbU_n$, we want to find a discrete solution
 \begin{equation}
-  u_{\calF} =  \Pi_{\calF}^{\calE_K} u_{\calF} + \Pi_{\calF}^{\calR_K} u_{\calF},
+u_{n} := \argmin_{w_n\in \mbbU_n} \| \ell_{\lambda} - B_{\lambda} w_n\|_{(\mbbV_m)^{*}}, \quad \text{\textcolor{red}{(MinRes method)}}
+\label{eq:discrete_min_res}
 \end{equation}
-where $\calE_K \coloneqq \calF \setminus \calR_K$ is the subset of \emph{essential} basis functions and $\calR_K$ the set of \emph{removable} basis functions associated to $K$.
-%Since we consider a single mesh at a time, the solution $u_{\calE_K}$ in $\calE_K$ is never computed. Instead, we employ the projection of $u_\calF$ into $\calE_K$ to approximate it when necessary. 
-We illustrate of a 1D multi-level $hp$-grid with hierarchical basis functions.
+%
 \innerblock{}{
+To solve the above problem %~\eqref{eq:discrete_min_res}
+is equivalent to solve the following saddle point problem:
+\begin{equation}
+\left\{ \begin{array}{rll}
+\text{Find } (r_m, u_n) \in \mathbb{V}_m \times \mbbU_n &\text{ such that:} & \\
+(r_m,v_m)_{\mbbV} + b_{\lambda}(u_n,v_m) &= \ell_\lambda(v_m), & \forall\, v_m \in \mbbV_m,\\
+b_{\lambda}(w_n,r_m) &= 0 , & \forall\, w_n \in \mbbU_n.
+\end{array} \right.
+\label{eq:discrete_mixed_formulation}
+\end{equation}
+}
+%
+What we do:
+%
+%\vspace*{-28pt}
+\begin{multicols}{2}
+\innerblock{}{
+We modify the MinRes method by introducing a \textcolor{red}{weighted inner product}
+\begin{equation}
+(\,\cdot\, , \cdot\,)_{\mbbV}\quad  \longrightarrow \quad (\,\cdot\, , \cdot\,)_{\textcolor{red}{\mbbV,\omega}}
+\end{equation}
+ in the $\mbbV$ space [$\,1\,$]
+\vspace*{26pt}
+}
+\innerblock{}{
+{\bf Example:} $H_{0}^{1}(\Omega)$
+\begin{equation}
+(r , v)_{\mbbV,\omega} = \sum_{k=1}^{K}  \omega_k \underbrace{\int_{\Omega_k} \nabla r(x) \cdot \nabla v(x)\, dx}_{G_k}
+\end{equation}
+}
+\end{multicols}
+%
+\innerblock{}{
+We seek for the coefficients $\omega :=(\omega_1,\dots,\omega_m)$, such that solving the system~\eqref{eq:discrete_mixed_formulation}
 \begin{center}
-	\begin{tikzpicture}[scale=3,x=4cm,y=2cm,decoration={markings,%switch on markings mark=% actually add a mark
-     	mark=at position 0 with{\draw (0pt,-2pt) -- (0pt,2pt);},
-     	mark=at position 1 with{\draw (0pt,-2pt) -- (0pt,2pt);},
-	}
-	]
-	\node(origin1) at (0,1) {};
-	\node(origin2) at (1,1) {};
-	\node(origin3) at (2,1) {};
+$
+\begin{array}{cl}
+%\text{Find } (\alpha, \beta) \in \mbbR^{m} \times \mbbR^{n} \text{ s.t.:} & \\
+\arraycolsep=1.4pt\def\arraystretch{1.2}
+\left[\begin{array}{c|c}
+G_\omega & B_\lambda \\
+\hline
+B_{\lambda}^{\top} & 0 
+\end{array}
+\right]
+\left[\begin{array}{c}
+\alpha \\ \hline \beta 
+\end{array}
+\right]
+= 
+\left[\begin{array}{c}
+L_{\lambda} \\ \hline 0
+\end{array}
+\right], &
+\end{array}$
+\hspace*{3cm} with $\displaystyle G_\omega = \sum_{k=1}^{K} \omega_k G_k$.
+\end{center}
+delivers $u_{n}(x) :=\sum_{i=1}^{n} \beta_i(\omega) \varphi_i(x)$ as a good approximation for the QoI $q(u)$.
+}
+\innerblock{}{
+{\bf Obs:} See [$\,2\,$] for an extension to Galerkin and least-squares formulations.
+}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\block{Artificial neural networks}{ %
+We train a neural network $\text{nn}_\theta$ to learn the inner-product piecewise constant.
+\begin{multicols}{2}
+\innerblock{}{
+\def\layersep{2.3cm}
+Delivers every inner-product coefficient 
+\begin{center}
+\begin{tikzpicture}[shorten >=1pt,->,draw=black!50, node distance=\layersep]
+    \tikzstyle{every pin edge}=[<-,shorten <=1pt]
+    \tikzstyle{neuron}=[circle,draw=black,minimum size=26pt,inner sep=0pt]
+    \tikzstyle{input neuron}=[neuron, fill=green!50];
+    \tikzstyle{output neuron}=[neuron, fill=red!50];
+    \tikzstyle{hidden neuron}=[neuron, fill=blue!50];
+    \tikzstyle{annot} = [text width=4em, text centered]
+    
+    % Draw mesh
+	%\draw[step=0.5cm, very thin,black!20] (-5,-5) grid (10,1);
+    % Draw the input layer nodes
+    \foreach \name / \y in {1}
+    % This is the same as writing \foreach \name / \y in {1/1,2/2,3/3,4/4}
+    	\node[neuron, pin=left:$\lambda$] (I-\name) at (-3.6cm,-1.8*\y cm) {};
 
-	\node(father1) at (0,0) {};
-	\node(father2) at (0.25,0) {};
-	\node(father3) at (0.5,0) {};
-\node(father4) at (0.75,0) {};
-\node(father5) at (1,0) {};
-\node(father6) at (1.25,0) {};
-\node(father7) at (1.5,0) {};
-\node(father8) at (1.75,0) {};
-\node(father9) at (2,0) {};
-\node(father10) at (2.25,0) {};
-\node(father11) at (2.5,0) {};
-\node(father12) at (2.75,0) {};
-\node(father13) at (3,0) {};
+    % Draw the hidden layer nodes
+	\foreach \name / \y in {1,...,5}
+        \path[yshift=1.2cm] %[yshift=1.587cm]
+            node[neuron] (H1-\name) at (\layersep-3.6cm,-1.0*\y cm) {};    
+    
+    \foreach \name / \y in {1,...,5}
+        \path[yshift=1.2cm]
+            node[neuron] (H2-\name) at (2*\layersep-3.6cm,-1.0*\y cm) {};
+            
+    \foreach \name / \y in {1,...,5}
+        \path[yshift=1.2cm]
+            node[neuron] (H3-\name) at (3*\layersep-3.6cm,-1.0*\y cm) {};    
+            
+    \foreach \name / \y in {1,...,5}
+        \path[yshift=1.2cm]
+            node[neuron] (H4-\name) at (4*\layersep-3.6cm,-1.0*\y cm) {};    
+    
+        \path[yshift=3.2cm]
+        	node[neuron,pin={[pin edge={->}]right:$\omega_1$}] (H6-2) at (5*\layersep-3.6cm,-2.0 cm) {};
+        \path[yshift=3.2cm]
+        	node (H6-3) at (5*\layersep-3.6cm,-3.0 cm) {};                        
+        \path[yshift=3.2cm]
+        	node[neuron,pin={[pin edge={->}]right:$\omega_2$}] (H6-4) at (5*\layersep-3.6cm,-4.0 cm) {};                        
+        \path[yshift=3.2cm]
+        	node (H6-5) at (5*\layersep-3.6cm,-5.0 cm) {};                        
+        \path[yshift=3.2cm]
+        	node (H6-6) at (5*\layersep-3.6cm,-6.0 cm) {$\vdots$};
+        \path[yshift=3.2cm]
+        	node (H6-7) at (5*\layersep-3.6cm,-7.0 cm) {};                        
+        \path[yshift=3.2cm]
+        	node[neuron,pin={[pin edge={->}]right:$\omega_K$}] (H6-8) at (5*\layersep-3.6cm,-8.0 cm) {};                        
 
-\node(son1) at (0,-1) {};
-\node(son1a) at (0.125,-1) {};
-\node(son1b) at (0.25,-1) {};
-\node(son1c) at (0.375,-1) {};
-\node(son2)  at (0.5,-1) {};
-\node(son3)  at (0.75,-1) {};
-\node(son4)  at (1,-1) {};
-\node(son10)  at (2,-1) {};
-\node(son11) at (2.25,-1) {};
-\node(son12) at (2.5,-1) {};
-\node(son13) at (2.75,-1) {};
-\node(son14) at (3,-1) {};
+    % Connect every node in the input layer with every node in the
+    % hidden layer.
+    \foreach \source in {1}
+        \foreach \dest in {1,...,5}
+            \path (I-\source) edge (H1-\dest);
+            
+    \foreach \source in {1,...,5}
+        \foreach \dest in {1,...,5}
+            \path (H1-\source) edge (H2-\dest);        
 
-\node(grandson1) at (0,-2) {};
-\node(grandson2)  at (0.25,-2) {};
-\node(grandson3)  at (0.5,-2) {};
-\node(grandson4)  at (0.625,-2) {};
-\node(grandson5)  at (0.75,-2) {};
-\node(grandson6)  at (0.875,-2) {};
-\node(grandson7)  at (1,-2) {};
-\node(grandson8)  at (1.25,-2) {};
-
-\node(ggson1) at (0,-3) {};
-\node(ggson2)  at (0.25,-3) {};
-\node(ggson3)  at (0.5,-3) {};
-\node(ggson4)  at (0.625,-3) {};
-\node(ggson5)  at (0.75,-3) {};
-\node(ggson6)  at (0.875,-3) {};
-\node(ggson7)  at (1,-3) {};
-\node(ggson8)  at (1.25,-3) {};
-
-
-\node(basis0_0) at ($(father1)+(0,0.5)$){};
-\node(basis0_1) at ($(father5)+(0,0.5)$){};
-\node(basis0_2) at ($(father9)+(0,0.5)$){};
-\node(basis0_3) at ($(father13)+(0,0.5)$){};
-\node(basis1_1) at ($(son2)+(0,0.5)$){};
-\node(basis1_2) at ($(son11)+(0,0.5)$){};
-\node(basis1_3) at ($(son12)+(0,0.5)$){};
-\node(basis1_4) at ($(son13)+(0,0.5)$){};
-\node(basis2_1) at ($(grandson5)+(0,0.5)$){};
-\node(basis2_2) at ($(grandson8)+(0,0.5)$){};
-\node(basis2_3) at ($(grandson4)+(0,0.25)$){};
-\node(basis2_4) at ($(grandson6)+(0,0.25)$){};
-\node(basis3_1) at ($(ggson5)+(0,0.5)$){};
-\node(basis3_2) at ($(ggson8)+(0,0.5)$){};
-\node(basis3_3) at ($(ggson4)+(0,0.5)$){};
-\node(basis3_4) at ($(ggson6)+(0,0.5)$){};
-
-
-%%%%%% HORIZONTAL LINES
-% level 1
-\draw [postaction={decorate}] (father1.center) -- (father5.center) node[pos=0.5](elemfather1){};
-\draw [postaction={decorate}] (father5.center) -- (father9.center) node[pos=0.5](elemfather2){};
-\draw [postaction={decorate}] (father9.center) -- (father13.center) node[pos=0.5](elemfather3){};
-
-% level 2
-
-\draw [postaction={decorate,red}] (son1.center) -- (son2.center) node[pos=0.5](elemson1){};
-\draw [postaction={decorate}] (son2.center) -- (son4.center) node[pos=0.5](elemson2){};
-
-\draw [postaction={decorate,red}] (son10.center) -- (son12.center) node[pos=0.5](elemson31){};
-\draw [postaction={decorate}] (son12.center) -- (son14.center) node[pos=0.5](elemson4){};
-
-% level 2
-\draw [postaction={decorate}] (grandson3.center) -- (grandson5.center) node[pos=0.5](elemgrandson1){};
-\draw [postaction={decorate}] (grandson5.center) -- (grandson7.center) node[pos=0.5](elemgrandson2){};
-
-% k3
-%\draw [postaction={decorate}] (ggson3.center) -- (ggson5.center) node[pos=0.5](elemggson1){};
-%\draw [postaction={decorate}] (ggson5.center) -- (ggson7.center) node[pos=0.5](elemggson2){};
-
-%%%%%%%%% BOTTOM LINE %%%%%%%%%
-
-\node(gggson1) at (0,-2.5) {};
-\node(gggson2)  at (0.125,-2.5) {};
-\node(gggson3)  at (0.25,-2.5) {};
-\node(gggson4)  at (0.375,-2.5) {};
-\node(gggson5)  at (0.5,-2.5) {};
-\node(gggson6)  at (0.625,-2.5) {};
-\node(gggson7)  at (0.75,-2.5) {};
-\node(gggson8a)  at (0.8125,-2.5) {};
-\node(gggson8)  at (0.875,-2.5) {};
-\node(gggson8b)  at (0.9325,-2.5) {};
-\node(gggson9)  at (1,-2.5) {};
-\node(gggson10)  at (1.125,-2.5) {};
-\node(gggson11)  at (1.25,-2.5) {};
-\node(gggson12)  at (1.375,-2.5) {};
-\node(gggson13)  at (1.5,-2.5) {};
-\node(gggson14)  at (1.625,-2.5) {};
-\node(gggson15)  at (1.75,-2.5) {};
-\node(gggson16)  at (1.875,-2.5) {};
-\node(gggson17)  at (2,-2.5) {};
-\node(gggson18)  at (2.125,-2.5) {};
-\node(gggson19)  at (2.25,-2.5) {};
-\node(gggson20)  at (2.375,-2.5) {};
-\node(gggson21)  at (2.5,-2.5) {};
-\node(gggson22)  at (2.625,-2.5) {};
-\node(gggson23)  at (2.75,-2.5) {};
-\node(gggson24)  at (2.875,-2.5) {};
-\node(gggson25)  at (3,-2.5) {};
-
-\draw [|-] (gggson1.center) -- (gggson5.center) node[pos=0.5](){};
-\draw [|-] (gggson5.center) -- (gggson7.center) node[pos=0.5](){};
-\draw [|-] (gggson7.center) -- (gggson9.center) node[pos=0.5](){};
-\draw [|-] (gggson9.center) -- (gggson17.center) node[pos=0.5](){};
-\draw [|-] (gggson17.center) -- (gggson21.center) node[pos=0.5](){};
-\draw [|-|] (gggson21.center) -- (gggson25.center) node[pos=0.5](){};
-
-
-%%%%%%%%% VERTICAL LINES %%%%%%%%%
-
-% From level 0
-\draw[dotted] (father1.center) -- (gggson1.center);
-\draw[dotted] (father5.center) -- (gggson9.center);
-\draw[dotted] (father9.center) -- (gggson17.center);
-\draw[dotted] (father13.center) -- (gggson25.center);
-
-%\draw[loosely dotted,very thin] (father6.center) -- (gggson11.center);
-%\draw[loosely dotted,very thin] (father7.center) -- (gggson13.center);
-%\draw[loosely dotted,very thin] (father8.center) -- (gggson15.center);
-%\draw[loosely dotted,very thin] (father11.center) -- (gggson21.center);
-
-% From level 1
-\draw[loosely dotted] (son2.center) -- (gggson5.center);
-%\draw[loosely dotted] (son4.center) -- (gggson9.center);
-
-%\draw[loosely dotted, very thin] (son1a.center) -- (gggson2.center);
-%\draw[loosely dotted, very thin] (son1b.center) -- (gggson3.center);
-%\draw[loosely dotted, very thin] (son1c.center) -- (gggson4.center);
-%\draw[loosely dotted, very thin] (son11.center) -- (gggson19.center);
-\draw[loosely dotted, very thin] (son12.center) -- (gggson21.center);
-%\draw[loosely dotted, very thin] (son13.center) -- (gggson23.center);
-
-
-% From level 2
-\draw[loosely dotted] (grandson5.center) -- (gggson7.center);
-
-%\draw[loosely dotted, very thin] (ggson4.center) -- (gggson6.center);
-%\draw[loosely dotted, very thin] (ggson6.center) -- (gggson6.center);
-%\draw[loosely dotted, very thin] (ggson6.center) -- (gggson8.center);
-
-%\node at (gggson1)  {\Cross};
-%\node at (gggson2)  {\Cross};
-%\node at (gggson3)  {\Cross};
-%\node at (gggson4)  {\Cross};
-%\node at (gggson5)  {\Cross};
-%\node at (gggson6)  {\Cross};
-%\node at (gggson7)  {\Cross};
-%\node at (gggson8a)  {\Cross};
-%\node at (gggson8)  {\Cross};
-%\node at (gggson8b)  {\Cross};
-%\node at (gggson9)  {\Cross};
-%\node at (gggson11)  {\Cross};
-%\node at (gggson13)  {\Cross};
-%\node at (gggson15)  {\Cross};
-%\node at (gggson17)  {\Cross};
-%%\node at (gggson19)  {\Cross};
-%\node at (gggson21)  {\Cross};
-%%\node at (gggson23)  {\Cross};
-%\node at (gggson25)  {\Cross};
-
-%%%%%%%%% BASIS FUNCTIONS %%%%%%%%%
-%%%%%% level 0
-
-% linear basis function
-
-\draw[color=black, thick] (basis0_0.center) -- (father5.center);
-\draw[color=black, thick] (father1.center) -- (basis0_1.center) -- (father9.center);
-\draw[color=black, thick] (father5.center) -- (basis0_2.center) -- (father13.center);
-\draw[color=black, thick] (basis0_3.center) -- (father9.center);
-
-% degree 2 basis function
-\draw[color=black, thick]    (father5.center) .. controls ($(elemfather2)+(-0.05,+0.15)$) and ($(elemfather2)+(0.05,0.15)$) ..  (father9.center) ;
-%\draw[color=black, thick]    (father9.center) .. controls ($(elemfather3)+(-0.05,+0.15)$) and ($(elemfather3)+(0.05,0.15)$) ..  (father13.center) ;
-
-% degree 3 basis function
-\draw[color=red, ultra thick]   (father5.center) .. controls ($(elemfather2)+(-0.01,-0.25)$) and ($(elemfather2)+(0.00,0.25)$) ..  (father9.center);
-
-%%%%% level 1
-% linear basis function
-\draw[color=black, thick] (son1.center) -- (basis1_1.center) -- (son4.center);
-\draw[color=red, ultra thick] (son10.center) -- (basis1_3.center) -- (son14.center);
-%\draw[color=red, thick] (son10.center) -- (basis1_2.center) -- (son12.center);
-%\draw[color=red, thick] (son12.center) -- (basis1_4.center) -- (son14.center);
-
-% degree 2 basis function
-\draw[color=black, thick]    (son1.center) .. controls ($(elemson1)+(-0.05,+0.15)$) and ($(elemson1)+(0.05,0.15)$) ..  (son2.center);
-
-% degree 3 basis function
-\draw[color=red, ultra thick]   (son1.center) .. controls ($(elemson1)+(-0.0,-0.25)$) and ($(elemson1)+(0.0,0.25)$) ..  (son2.center);
-
-
-%%%%% level 2
-
-% linear basis function
-\draw[color=black, thick] (grandson3.center) -- (basis2_1.center) -- (grandson7.center);
-%\draw[color=red, thick]    (grandson3.center) -- (basis2_3.center) -- (grandson5.center);
-%\draw[color=red, thick]    (grandson5.center) -- (basis2_4.center) -- (grandson7.center);
-
-% degree 2 basis function
-\draw[color=red, ultra thick]    (grandson3.center) .. controls ($(elemgrandson1)+(-0.05,+0.15)$) and ($(elemgrandson1)+(0.05,0.15)$) ..  (grandson5.center);
-\draw[color=black, thick]    (grandson5.center) .. controls ($(elemgrandson2)+(-0.05,+0.15)$) and ($(elemgrandson2)+(0.05,0.15)$) ..  (grandson7.center);
-
-% degree 3 basis function
-\draw[color=red, ultra thick]   (grandson5.center) .. controls ($(elemgrandson2)+(-0.0,-0.25)$) and ($(elemgrandson2)+(0.0,0.25)$) ..  (grandson7.center);
-
-
-%%%%% k3
-
-% linear basis function
-%\draw[color=red, thick]    (ggson3.center) -- (basis3_3.center) -- (ggson5.center);
-%\draw[color=red, thick]    (ggson5.center) -- (basis3_4.center) -- (ggson7.center);
-
-%%%%%%%%% CIRCLES %%%%%%%%%
-
-%%%%%% level 0
-
-\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(father1)+(0,0)$){};
-%\node[circle,draw, fill=white, inner sep=0pt,minimum size=5pt] at ($(father1a)+(0,0)$){};
-%\node[circle,draw, fill=white, inner sep=0pt,minimum size=5pt] at ($(father1b)+(0,0)$){};
-\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(father5)+(0,0)$){};
-%\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(father6)+(0,0)$){};
-%\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(father7)+(0,0)$){};
-%\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(father8)+(0,0)$){};
-\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(father9)+(0,0)$){};
-%\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(father11)+(0,0)$){};
-\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(father13)+(0,0)$){};
-
-%%%%%% level 1
-
-\node[circle,draw, fill=white, inner sep=0pt,minimum size=5pt] at ($(son1)+(0,0)$){};
-
-%\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(son1a)+(0,0)$){};
-%\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(son1b)+(0,0)$){};
-%\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(son1c)+(0,0)$){};
-\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(son2)+(0,0)$){};
-\node[circle,draw, fill=white, inner sep=0pt,minimum size=5pt] at ($(son4)+(0,0)$){};
-\node[circle,draw, fill=white, inner sep=0pt,minimum size=5pt] at ($(son10)+(0,0)$){};
-%\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(son11)+(0,0)$){};
-\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(son12)+(0,0)$){};
-%\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(son13)+(0,0)$){};
-\node[circle,draw, fill=white, inner sep=0pt,minimum size=5pt] at ($(son14)+(0,0)$){};
-
-%%%%%% level 2
-\node[circle,draw, fill=white, inner sep=0pt,minimum size=5pt] at ($(grandson3)+(0,0)$){};
-%\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(grandson4)+(0,0)$){};
-\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(grandson5)+(0,0)$){};
-%\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(grandson6)+(0,0)$){};
-\node[circle,draw, fill=white, inner sep=0pt,minimum size=5pt] at ($(grandson7)+(0,0)$){};
-
-%%%%%% level 2
-%\node[circle,draw, fill=white, inner sep=0pt,minimum size=5pt] at ($(ggson3)+(0,0)$){};
-%\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(ggson4)+(0,0)$){};
-%\node[circle,draw, fill=white, inner sep=0pt,minimum size=5pt] at ($(ggson5)+(0,0)$){};
-%\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at ($(ggson6)+(0,0)$){};
-%\node[circle,draw, fill=white, inner sep=0pt,minimum size=5pt] at ($(ggson7)+(0,0)$){};
-
-%%%%%%%%%%% LEGEND
-
-%\draw[blue, very thick] at (origin) rectangle (3,2);
-%\node[rectangle,draw] at (origin1) {};
-
-\node[circle,draw, fill=white, inner sep=0pt,minimum size=5pt] at (origin1){};
-\node at ($(origin1) +(0.35,0.01)$)  {Dirichlet nodes};
-
-\node[circle,draw, fill=black, inner sep=0pt,minimum size=5pt] at (origin2){};
-\node at ($(origin2) +(0.3,0.01)$)  {Active nodes};
-
-\node[rectangle, inner sep=0pt, minimum height=3pt, minimum width=6pt, draw=red, fill=red] at (origin3)  {};
-%\node at (origin3)  {\Cross};
-\node at ($(origin3) +(0.4,0)$)  {Removable basis};
-
-%%%%%%%%%%%  TEXT
-
-%%%% left  %%%%
-
-%\node[anchor=west] at ($(father1)-(0.9,0)$) {level 0 (base)};
-%\node[anchor=west] at ($(son1)-(0.75,0)$) {level 1};
-%\node[anchor=west] at ($(grandson1)-(0.75,0)$) {level 2};
-%\node[anchor=west] at ($(ggson1)-(0.75,0)$) {level 3};
-%\node[anchor=west] at ($(gggson1)-(0.9,0)$) {Overlapped mesh};
-
-%%%% bottom  %%%%
-
-\node at ($(gggson3) +(0,-0.2)$)  {$p=3$};
-\node at ($(gggson6) +(0,-0.2)$)  {$p=2$};
-\node at ($(gggson8) +(0,-0.2)$)  {$p=3$};
-\node at ($(gggson13) +(0,-0.2)$)  {$p=3$};
-\node at ($(gggson19) +(0,-0.2)$)  {$p=1$};
-\node at ($(gggson23) +(0,-0.2)$)  {$p=1$};
-
-
+    \foreach \source in {1,...,5}
+        \foreach \dest in {1,...,5}
+            \path (H2-\source) edge (H3-\dest);   
+            
+    \foreach \source in {1,...,5}
+        \foreach \dest in {1,...,5}
+            \path (H3-\source) edge (H4-\dest); 
+                            
+    \foreach \source in {1,...,5}
+        \foreach \dest in {2,4,8}
+            \path (H4-\source) edge (H6-\dest);                                     
 
 \end{tikzpicture}
 \end{center}
 }
-}
- %
-\block{Problem settings}{ %
-We consider the abstract variational formulation and its discrete version:
-\begin{quote}
-Find $u \in \H$ and $u_{\calF} \in \H_{\calF}$ such that
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\innerblock{}{
+%Delivers the $i$-th inner-product coefficient 
+%\vspace*{34pt}
+%\begin{center}
+%\def\layersep{2.3cm}
+%\begin{tikzpicture}[shorten >=1pt,->,draw=black!50, node distance=\layersep]
+%    \tikzstyle{every pin edge}=[<-,shorten <=1pt]
+%    \tikzstyle{neuron}=[circle,draw=black,minimum size=26pt,inner sep=0pt]
+%    \tikzstyle{input neuron}=[neuron, fill=green!50];
+%    \tikzstyle{output neuron}=[neuron, fill=red!50];
+%    \tikzstyle{hidden neuron}=[neuron, fill=blue!50];
+%    \tikzstyle{annot} = [text width=4em, text centered]
+%    
+%    % Draw mesh
+%	%\draw[step=0.5cm, very thin,black!20] (-5,-5) grid (10,1);
+%    % Draw the input layer nodes
+%    %\foreach \name / \y in {1,2}
+%    % This is the same as writing \foreach \name / \y in {1/1,2/2,3/3,4/4}
+%    \node[neuron, pin=left:$\lambda$] (I-1) at (-3.6cm,-0.3cm - 1.0cm) {};
+%    \node[neuron, pin=left:$i$] (I-2) at (-3.6cm,-0.3cm - 1.0*2 cm) {};
 %
-\begin{align}
-%\SwapAboveDisplaySkip
-b(u,\phi)=f(\phi), \quad \forall \phi\in \H&;&b(u_{\calF},\phi_{\calF}) = f(\phi_{\calF}), \quad \forall \phi_{\calF} \in \H_{\calF}.%\label{direct}%\\
-%b(u,v^*)=\alert<1>{l(u)}&\quad \forall u\in \H, \label{adjoint}
-\end{align}
-%where $\H$ is a Hilbert functional space and $\H_{\calF}$ is a finite element discretization $\calT$ of $\H$, such that $\H_{\calF} \subset \H$.
-\end{quote}
+%    % Draw the hidden layer nodes
+%	\foreach \name / \y in {1,...,5}
+%        \path[yshift=1.2cm] %[yshift=1.587cm]
+%            node[neuron] (H1-\name) at (\layersep-3.6cm,-1.0*\y cm) {};    
+%    
+%    \foreach \name / \y in {1,...,5}
+%        \path[yshift=1.2cm]
+%            node[neuron] (H2-\name) at (2*\layersep-3.6cm,-1.0*\y cm) {};
+%            
+%    \foreach \name / \y in {1,...,5}
+%        \path[yshift=1.2cm]
+%            node[neuron] (H3-\name) at (3*\layersep-3.6cm,-1.0*\y cm) {};    
+%            
+%    \foreach \name / \y in {1,...,5}
+%        \path[yshift=1.2cm]
+%            node[neuron] (H4-\name) at (4*\layersep-3.6cm,-1.0*\y cm) {};    
+%                                                        
+%        \path[yshift=3.2cm]
+%        	node[neuron,pin={[pin edge={->}]right:$\omega_i\;\,$}] (H5-1) at (5*\layersep-3.6cm,-5.0 cm) {};                                           
 %
+%    % Draw the output layer node
+%    %\node[neuron,pin={[pin edge={->}]right:Salida}, right of=H5-3] (O) {hola1};
+%
+%    % Connect every node in the input layer with every node in the
+%    % hidden layer.
+%    \foreach \source in {1,2}
+%        \foreach \dest in {1,...,5}
+%            \path (I-\source) edge (H1-\dest);
+%            
+%    \foreach \source in {1,...,5}
+%        \foreach \dest in {1,...,5}
+%            \path (H1-\source) edge (H2-\dest);        
+%
+%    \foreach \source in {1,...,5}
+%        \foreach \dest in {1,...,5}
+%            \path (H2-\source) edge (H3-\dest);   
+%            
+%    \foreach \source in {1,...,5}
+%        \foreach \dest in {1,...,5}
+%            \path (H3-\source) edge (H4-\dest);        
+%         
+%    \foreach \source in {1,...,5}
+%        \path (H4-\source) edge (H5-1);                                     
+%\end{tikzpicture}
+%\end{center}
+%}
+%\vspace*{5pt}
 \innerblock{}{
-\begin{quote}
-The objective is to control
-%
-\begin{align}
-\abs{l(u_\calF)-l(u_{\calE_K})}, \quad \forall K\in \calT,
-\end{align}
-where $l: \H \longrightarrow \R$ is a linear continuous form.
-\end{quote}
-}
-We introduce the following adjoint problem and its discrete counterpart as follows:
-\begin{quote}
-Find $v \in \H$ and $v_{\calF}\in \H_{\calF}$ such that
-%
-\begin{align}
-b(\phi,v)=l(\phi), \quad \forall \phi\in \H&;&b(\phi_{\calF},v_{\calF})=l(\phi_{\calF}), \quad \forall \phi_{\calF} \in \H_{\calF}.
-\end{align}
-%where $v_{\calF}$ stands for the Galerkin approximation of the solution $v$ to the adjoint problem associated with the space $\H_{\calF}$.
-\end{quote}
-}
-%
-\block{Error indicators}{ %
-\innerblock{}{
-We define the element-wise indicators for energy-norm based elliptic problems as
- \begin{equation}
-  \eta_K\coloneqq \norm{\Pi_{\calF}^{\calR_K} u_{\calF}}_e^2, \quad \forall K \in \calT.\label{eq:SPDindicators}
-\end{equation}
-}
-\innerblock{}{
-We define the element-wise indicators for goal-oriented problems as
+{\bf Training set}
 \begin{equation}
-  \eta_K \coloneqq \abs{a(\Pi_{\calF}^{\calR_K} u_{\calF},\Pi_{\calF}^{\calR_K} v_{\calF})}, \quad \forall K\in \calT.
+\{\lambda^{(1)}, \lambda^{(2)},\dots \lambda^{(N_s)}\}
+\end{equation}
+}
+\vspace*{10pt}
+\innerblock{}{
+{\bf Labels}
+\begin{equation}
+\{q(u_{\lambda^{(1)}}), q(u_{\lambda^{(2)}}),\dots q(u_{\lambda^{{(N_s)}}})\}
+\end{equation}
+}
+\end{multicols}
+%\begin{multicols}{2}
+%\innerblock{Training set}{
+%\begin{equation}
+%\{\lambda_1, \lambda_2,\dots \lambda_{N_s}\}
+%\end{equation}
+%}
+%\innerblock{Labels}{
+%\begin{equation}
+%\{q(u_{\lambda_1}), q(u_{\lambda_2}),\dots q(u_{\lambda_{N_s}})\}
+%\end{equation}
+%}
+%\end{multicols}
+\innerblock{Loss function}{
+\begin{equation}
+\mathcal{L}(\theta) := \frac{1}{N_s}\sum_{i=1}^{N_s}\frac{1}{2}\left|\frac{ q(u_{\lambda^{(i)}}) - q(u_{n,\lambda^{(i)}}(\theta))}{q(u_{\lambda^{(i)}})}\right|^2
+\label{eq:loss_function}
 \end{equation}
 }
 }
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\column{0.5} 
 %
- \column{0.5} 
- %
-\block{An indefinite problem}{%
-Find $u$ such that, 
-		\begin{alignat*}{2}
-			- \nabla \cdot ( \sigma \nabla u) - k^{2}u &= \scalar{\mathds{1}_{(0,\frac{1}{4})^{2}}}{\cdot}_{L^{2}(\Omega)} \,\, && \text{ in } \Omega \subset \R^{2},\\
-			u&=0 \,\, && \text{ on } {\color{blue}{\Gamma_{D}}},\\
-			\grad u\cdot \vec{n} &= 0 \,\, && \text{ on } {\color{red}{\Gamma_{N}}}.
-		\end{alignat*}%
-\begin{align}
-\SwapAboveDisplaySkip
-	l(\cdot)=\scalar{\mathds{1}_{(\frac{3}{4},1)^{2}}}{\cdot}_{L^{2}(\Omega)};&&a(\cdot,\cdot) =& \, \sum_{K} \abs{\scalar{\grad \cdot}{\grad \cdot}_{L^{2}(K)} + \abs{k^{2}} \scalar{\cdot}{\cdot}_{L^{2}(K)}}.
-\end{align}
-
-\begin{multicols}{2}
-%\begin{subcolumns}
-%\subcolumn{0.333}
-\innerblock{$k = (0, 0)$}{
-\begin{center}
- \begin{tikzpicture}[scale=2.89,x=2.5cm,y=2.5cm]
-    \node(n1) at (0.25,0){};
-    \node(n2) at (0.75,0){};
-    \node(n3) at (0.75,0.25){};
-
-    \node(n4) at (0.25,0.25){};
-    \node(n5) at (0.5,0.5){};
-    \draw (n4) rectangle (n5) node[pos=0.5] {$\Omega_{f}$};
-
-    \node(n7) at (0.75,0.75){};
-    \draw (n5) rectangle (n7) node[pos=0.5] {$\Omega_{l}$};
-
-    \draw[color=blue, thick,] (0.25,0) -- (0.75,0) -- (0.75,0.25) -- (1,0.25) -- (1,0.75) -- (0.75,0.75) -- (0.75,1) -- (0.25,1) -- (0.25,0.75) -- (0,0.75) -- (0,0.25) -- (0.25,0.25) -- (0.25,-0.005);
-    \node(omega) at (0.5,0.90){$\Omega$};
-    \draw[color=blue, thick] (n1.center) --  (n2.center) -- node[pos=0.5,pin={0: $\Gamma_{D}$}]{} (n3.center);
-  \end{tikzpicture}
-\end{center}
+\block{Training process}{%
+\includegraphics[width=0.45\textwidth]{Figures/NN/Training.pdf}
 }
-\innerblock{$k = (8 \cdot 2 \pi, 2 \pi)$}{
-\begin{center}
-\begin{tikzpicture}[scale=2.75,x=2.5cm,y=2.5cm]
-    	\node(n1) at (0,0){};
-    	\node(n2) at (1,0){};
-    	\node(n3) at (1,1){};
-    	\node(n4) at (0,1){};
-
-    	\node(n5) at (0.25,0.25){};
-    	\node(n6) at (0.75,0.25){};
-    	\node(n7) at (0.75,0.75){};
-    	\node(n8) at (0.25,0.75){};
-
-    	\draw (n1) rectangle (n5) node[pos=0.5] {$\Omega_{f}$};
-    	\draw (n7) rectangle (n3) node[pos=0.5] {$\Omega_{l}$};
-
-    	\draw[color=blue, thick] (n5) rectangle (n7);
-
-    	\draw[color=blue, thick] (n4.center) -- node[pos=0.5,pin={180: $\Gamma_{D}$}]{} (n1.center) -- (n2.center);
-    	\draw[color=red, thick] (n4.center)--  (n3.center) -- node[pos=0.5,pin={0: $\Gamma_{N}$}]{} (n2.center);
-
-    	\node(omega) at (0.5,0.85){$\Omega$};
-
-  	\end{tikzpicture}
-\end{center}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\block{Ex: Diffusion with two parameters ($\dim \mbbU_n = 4$)}{
+$$
+\left\{
+\begin{array}{rl}
+- (a(x) u')' = 1, & \hbox{in } (0,1), \\
+u(0) = u(1) = 0, &
+\end{array}
+\right.
+\quad \text{with}\quad
+a(x) = \begin{cases} \lambda_1, & \text{if } x \leq 0.5, \\  \lambda_2, & \text{if } x > 0.5. \end{cases}
+\quad \text{and}\quad
+q(u)= u(0.6)
+$$ 
+\includegraphics[scale=1.1]{Figures/diffusion_fig_02.png}
+\includegraphics[scale=1.1]{Figures/output_POSTER.png}
 }
-%\subcolumn{0.333}
-%\end{subcolumns}
-\end{multicols}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\block{Ex: Advection  with parametric rhs ($\dim \mbbU_n = 1$)}{
+$$
+\left\{
+\begin{array}{rl}
+ u' = f_{\lambda}, & \hbox{in } (0,1), \\
+u(0) = 0, &
+\end{array}
+\right.
+\quad \text{with}\quad
+f_{\lambda}(x) = \begin{cases} 0, & \text{if } x \leq \lambda, \\  x - \lambda, & \text{if } x > \lambda. \end{cases}
+\quad \text{and}\quad
+q(u)= u(0.9)
+$$ 
+\includegraphics[scale=1.1]{Figures/ex2_single_POSTER_v2.png}
+\includegraphics[scale=1.1]{Figures/ex2_rel_error_v2_latex_12_POSTER_v2.png}
 }
 
-\block{Final $hp$-adapted meshes for Poisson example}{%
-\plothp{CrossGOA}
-}
-
-\block{Final $hp$-adapted meshes for Helmholtz example}{%
-\plothp{Helm2DGOA}
+%\block{Final $hp$-adapted meshes for Poisson example}{%
+%\plothp{CrossGOA}
+%}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\block{References}{%
+\begin{itemize}
+\item[[$\,$1]] I. Brevis, I. Muga, and K.~G. van der Zee, \emph{A machine-learning minimal-residual (ML-MRes) framework for goal-oriented finite element discretizations}, Comput. Math. Appl., 95 (2021), pp. 186–199.
+\item[[$\,$2]] I. Brevis, I. Muga, and K.~G. van der Zee, \emph{Neural control of discrete weak formulations: Galerkin, least-squares and minimal-residual methods with quasi-optimal weights}, Comput. Methods Appl. Mech. Engrg., 402 (2022), p. 115716.
+\end{itemize}
 }
 \end{columns} 
 % 
-%\note[targetoffsetx=-3cm, targetoffsety=-2cm, angle=0, radius=0cm,width=7cm, rotate=10, connection, linewidth=.2cm,
-%     roundedcorners=30, innersep=1cm]{\centering\vspace{1.5cm}\textbf{Published!}
-%\scriptsize
-%%Felipe V. Caro and Vincent Darrigrand and Julen Alvarez-Aramberri and Elisabete Alberdi and David Pardo.\\
-%%A painless multi-level automatic goal-oriented $hp$-adaptive coarsening strategy for elliptic and non-elliptic problems.\\
-%{\em Computer Methods in Applied Mechanics and Engineering}, 2022.
-% }
-\end{document}
-%
-% \block{Convergence}{%
-% \begin{tikzfigure}[Evolution of the error in the QoI.]
-%	\errorplotlog{Helm2DGOA}{Error}
-%\end{tikzfigure}
-%}
-%%
-%\note[targetoffsetx=-3cm, targetoffsety=-2cm, angle=0, radius=0cm,width=7cm, rotate=10, connection, linewidth=.2cm,
-%     roundedcorners=30, innersep=1cm]{\centering\vspace{1.5cm}\textbf{Published!}
-%\scriptsize
-%%Felipe V. Caro and Vincent Darrigrand and Julen Alvarez-Aramberri and Elisabete Alberdi and David Pardo.\\
-%%A painless multi-level automatic goal-oriented $hp$-adaptive coarsening strategy for elliptic and non-elliptic problems.\\
-%{\em Computer Methods in Applied Mechanics and Engineering}, 2022.
-% }
-%
+
 %\begin{columns}
 %
 %\column{0.25}
@@ -552,155 +423,13 @@ Find $u$ such that,
 %%
 %}
 %
-%\block{}{
-%\begin{center}
-%\begin{tikzpicture}
-%\begin{scope}[it_style/.style={rectangle, fill=mygray!20,line width=4pt,}]
-%
-%\node(phantom){};
-%\shade[ball color=mygreen!30] (phantom) ellipse [x radius=30cm, y radius=8cm];
-%\node[left=of phantom](WIP){};
-%\node[left=15 of WIP](phantom_wip){};
-%\node[above=of phantom_wip](MDGOA){};
-%\node[above=of MDGOA](PROOF){};
-%\node[below=of phantom_wip](Probs){};
-%\node[below=of Probs](NLQOI){};
-%
-%\draw (MDGOA) node [it_style] {Multi-D Goal-oriented Adaptivity};
-%\path (PROOF) node [it_style] {Theoretical proof};
-%\path (Probs) node [it_style] {Widen the range of problems};
-%\path (NLQOI) node [it_style] {Application to non-linear QoI};
-%
-%\node[right=15 of phantom](Mob){};
-%\node[above=of Mob](BIO){};
-%\node[below=of Mob](VALPO){};
-%
-%\path (Mob) node [it_style] {Pau (12 monthes)};
-%\path (BIO) node [it_style] {Bilbao (18 monthes)};
-%\path (VALPO) node [it_style] {Valparaiso (6 monthes)};
-%
-%\end{scope}
-% \begin{scope}[mindmap,
-%every node/.style={concept, circular drop shadow,execute at begin node=\hskip0pt, scale=1},
-%%root concept/.style={concept color=mygreen!50,faded/.style={concept color=mygreen!50}},
-%level 1 concept/.append style={level distance=0.1\textwidth},
-%level 2 concept/.append style={level distance=0.07\textwidth},
-%WIP/.style={concept color=mybrown!50},
-% ]
-% \node[root concept]{}% root
-% child[grow=180,WIP]{node{Work in Progress} 
-% [clockwise from=-90]
-%  child{node{Multi-D Goal-oriented Adaptivity}}
-%     child { node{Theoretical proof}}
-%    child{node{Application to non-linear QoI}}
-%    child{node[ellipse]{Widen the range of problems}}
-%    }
-%child[grow=0,WIP]{node{Mobility} 
-% [clockwise from=60]
-%  child{node{Bilbao (18 monthes) }}
-%     child{node{Pau (12 monthes)}}
-%    child{node{Valparaiso (6 monthes)}}
-%    };
-%  \end{scope}
-%\end{tikzpicture}
-%\end{center}
-%
-%}
+%\end{columns} 
 
-%\begin{columns}
-%%%
-%  %%
-% \column{0.5} 
-% %%
-% %%
-% 
-% \block{Work in progress}{
-% \begin{itemize}
-%\item Application to multi-D goal oriented adaptive procedure
-%\item 
-%\end{itemize}
-%}
-%%%%%%%%%%%%%
-%%%
-%  %%
-% \column{0.5} 
-% %%
-% %%
-% %%%%%%%%%%%%
-% 
-%\block{Formations and Mobility}{blabla}
-%%%%%%%%%%%%%
-%
- %\end{columns} 
- 
-% \innerblock{3D}{
-%$$k = (4 \cdot 2 \pi, 2 \pi).$$
-%${\color{blue}{\Gamma_{D}}} =\text{ faces whose intersection is (0,0,0) }.$
-%${\color{red}{\Gamma_{N}}}   =\text{ faces whose intersection is (1,1,1) }.$
-%\begin{center}
-%\tdplotsetmaincoords{60}{125}
-%\begin{tikzpicture}%[x=0.3\colwidth]
-%	[tdplot_main_coords,
-%		grid/.style={very thin,gray},
-%		axis/.style={->,black,thin},
-%		cube/.style={ very thick},
-%		cube hidden/.style={very thick,dashed},
-%		QoI/.style={very thick,fill=green},%,pattern=custom north west lines, hatchcolor=green!100!black,opacity=1},
-%		%x=-2cm,
-%		%y=2cm,
-%		%z=2cm,
-%		scale=3.8
-%		]
-%	%draw a grid in the x-y plane
-%%	\foreach \x in {-0.5,0,...,2.5}
-%%		\foreach \y in {-0.5,0,...,2.5}
-%%		{
-%%			\draw[grid] (\x,-0.5) -- (\x,2.5);
-%%			\draw[grid] (-0.5,\y) -- (2.5,\y);
-%%		}			
-%
-%	%draw the axes
-%	\draw[axis] (1,0,0) -- (1.5,0,0) node[anchor=west]{$x$};
-%	\draw[axis] (0,1,0) -- (0,1.5,0) node[anchor=west]{$y$};
-%	\draw[axis] (0,0,1) -- (0,0,1.5) node[anchor=west]{$z$};
-%
-%	%draw the bottom of the cube
-%	\draw[cube,dashed, opacity=1] (0,0,0) -- (0,1,0) -- (1,1,0) -- (1,0,0) -- cycle;
-%	
-%	%draw the back-right of the cube
-%	\draw[cube,dashed,opacity=1] (0,0,0) -- (0,1,0) -- (0,1,1) -- (0,0,1) -- cycle;
-%
-%	%draw the back-left of the cube
-%	\draw[cube,dashed,opacity=1] (0,0,0) -- (1,0,0) -- (1,0,1) -- (0,0,1) -- cycle;
-%
-%	%\node[pin={[pin distance=1cm,pin edge={<-,red,ultra thick,dashed}] 70:$\color{red}{\Gamma_D}$}] at (0,0.5,0.8) {};
-%	\node at (0.7,0.6,0.5){$\Omega$};
-%	%draw the front-right of the cube
-%	\draw[cube,fill=blue ,opacity=0.5] (1,0,0) -- (1,1,0) -- (1,1,1) -- (1,0,1) -- cycle;
-%
-%	%draw the front-left of the cube
-%	\draw[cube,fill=blue,opacity=0.5] (0,1,0) -- (1,1,0) -- (1,1,1) -- (0,1,1) -- cycle;
-%
-%	%draw the top of the cube
-%	\draw[cube,fill=blue,opacity=0.5] (0,0,1) -- (0,1,1) -- (1,1,1) -- (1,0,1) -- cycle;
-%	\draw[cube] (0,0,1) -- (0,1,1) -- (1,1,1) -- (1,0,1) -- cycle;
-%	
-%	%\node[pin={[pin distance=1cm,pin edge={<-,solid,blue,ultra thick}] 110:$\color{blue}{\Gamma_N}$}] at  (1/2,0.05,1) {};
-%	
-%	%draw the QoI
-%	%\draw[QoI] (0.9,0.9,1) -- (0.9,1,1) -- (1,1,1) -- (1,0.9,1) -- cycle;
-%%	%draw the QoI
-%	%\draw[QoI] (1,0.9,0.9) -- (1,0.9,1) -- (1,1,1) -- (1,1,0.9) -- cycle;
-%%	%draw the QoI
-%	%\draw[QoI] (0.9,1,0.9) -- (0.9,1,1) -- (1,1,1) -- (1,1,0.9) -- cycle;
-%	
-%	%\node[pin={[pin distance=1.7cm,pin edge={<-,solid,green,ultra thick}] 0:$\color{green!50!black}{QoI}$}] at  (1,1,1) {};
-%	
-%	%\node[anchor=south, color=blue] at (0,1/2,1) {$\Gamma_N$};
-%	%\node[anchor=south, color=red] at (1/2,0,1) {$\Gamma_D$};
-%	%\node[anchor=west, color=green!50!black] at (0,1,1/2) {$QoI$};
-%	
-%\end{tikzpicture}
-%%}
-%\end{center}
-%%\vspace{.5cm}
+%\note[targetoffsetx=-3cm, targetoffsety=-2cm, angle=0, radius=0cm,width=7cm, rotate=10, connection, linewidth=.2cm,
+%     roundedcorners=30, innersep=1cm]{\centering\vspace{1.5cm}\textbf{Published!}
+%\scriptsize
+%%Felipe V. Caro and Vincent Darrigrand and Julen Alvarez-Aramberri and Elisabete Alberdi and David Pardo.\\
+%%A painless multi-level automatic goal-oriented $hp$-adaptive coarsening strategy for elliptic and non-elliptic problems.\\
+%{\em Computer Methods in Applied Mechanics and Engineering}, 2022.
+% }
+\end{document}
